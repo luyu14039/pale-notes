@@ -36,6 +36,9 @@ jobs:
         # 使用 npm install 以确保兼容性，如果确信 package-lock.json 同步可改用 npm ci
         run: npm install
 
+      - name: Fix vite permissions
+        run: chmod +x ./node_modules/.bin/vite
+
       - name: Build
         run: npm run build
 
