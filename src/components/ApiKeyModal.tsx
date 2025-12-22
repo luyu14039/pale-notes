@@ -2,21 +2,24 @@ import { useState } from 'react';
 import { useUIStore } from '@/stores/ui';
 import { deepseekChat } from '@/api/deepseek';
 
+// TODO: 请在此处填入默认的 API Key
+const DEFAULT_API_KEY = 'sk-YOUR_DEFAULT_KEY_HERE';
+
 export function ApiKeyModal() {
   const { apiKey, setApiKey, isApiKeyModalOpen, setApiKeyModalOpen } = useUIStore();
   const [inputKey, setInputKey] = useState(apiKey);
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
-  const handleSave = async () => {
+  const verifyAndSave = async (key: string) => {
     setStatus('testing');
     try {
       // 简单测试 API Key 是否有效
       await deepseekChat({
         messages: [{ role: 'user', content: 'Hello' }],
-        apiKey: inputKey,
+        apiKey: key,
         stream: false
       });
-      setApiKey(inputKey);
+      setApiKey(key);
       setStatus('success');
       setTimeout(() => {
         setApiKeyModalOpen(false);
@@ -26,6 +29,13 @@ export function ApiKeyModal() {
       console.error(error);
       setStatus('error');
     }
+  };
+
+  const handleSave = () => verifyAndSave(inputKey);
+
+  const handleUseDefault = () => {
+    setInputKey(DEFAULT_API_KEY);
+    verifyAndSave(DEFAULT_API_KEY);
   };
 
   const handleClose = () => {
@@ -75,6 +85,13 @@ export function ApiKeyModal() {
         />
 
         <div className="flex justify-end gap-2">
+          <button 
+            onClick={handleUseDefault}
+            disabled={status === 'testing'}
+            className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+          >
+            使用默认 Key
+          </button>
           <button 
             onClick={handleSave}
             disabled={status === 'testing' || !inputKey}
