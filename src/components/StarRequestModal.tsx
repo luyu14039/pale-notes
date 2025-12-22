@@ -64,7 +64,7 @@ export const StarRequestModal: React.FC = () => {
 
             <div className="flex justify-center mb-10">
               <a
-                href="https://github.com/your-username/pale-notes" // TODO: Replace with actual repo URL if known, otherwise user needs to update
+                href="https://github.com/luyu14039/pale-notes" // TODO: Replace with actual repo URL if known, otherwise user needs to update
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-6 py-3 bg-accent-lantern text-black font-bold rounded hover:bg-accent-lantern/90 transition-colors"
