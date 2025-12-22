@@ -34,8 +34,10 @@ export function ApiKeyModal() {
   const handleSave = () => verifyAndSave(inputKey);
 
   const handleUseDefault = () => {
-    setInputKey(DEFAULT_API_KEY);
-    verifyAndSave(DEFAULT_API_KEY);
+    // 直接使用默认 Key，跳过验证步骤，以便用户能立即进入游戏
+    // 注意：如果默认 Key 无效，游戏过程中可能会报错
+    setApiKey(DEFAULT_API_KEY);
+    setApiKeyModalOpen(false);
   };
 
   const handleClose = () => {
@@ -88,7 +90,7 @@ export function ApiKeyModal() {
           <button 
             onClick={handleUseDefault}
             disabled={status === 'testing'}
-            className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+            className="px-4 py-2 text-sm border border-text-muted rounded text-text-secondary hover:text-text-primary hover:border-text-primary transition-colors"
           >
             使用默认 Key
           </button>
