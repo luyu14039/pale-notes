@@ -25,8 +25,8 @@ export function useGameEngine(): GameEngineReturn {
   // @ts-ignore
   const store = useGameStore();
   
-  // Hardcoded API key as requested to resolve authentication issues
-  const apiKey = 'sk-c426a57657a142cd9d2bcaf7574de0f1';
+  // Use API Key from UI Store
+  const apiKey = useUIStore(state => state.apiKey);
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAnalyzingData, setIsAnalyzingData] = useState(false);

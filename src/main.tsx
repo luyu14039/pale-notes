@@ -11,10 +11,17 @@ window.useUIStore = useUIStore;
 window.openApiKeyModal = () => useUIStore.getState().setApiKeyModalOpen(true);
 // @ts-ignore
 window.resetApiKey = () => useUIStore.getState().setApiKey('');
+// @ts-ignore
+window.clearAllData = () => {
+  localStorage.clear();
+  console.log('All local storage data cleared.');
+  window.location.reload();
+};
 
 console.log('Debug commands available:');
 console.log('window.openApiKeyModal() - Open API Key modal');
 console.log('window.resetApiKey() - Reset API Key to empty');
+console.log('window.clearAllData() - Clear all local storage and reload');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
 import { NarrativeView } from '@/components/NarrativeView';
 import { ChoicePanel } from '@/components/ChoicePanel';
@@ -17,6 +17,7 @@ import { Menu, X } from 'lucide-react';
 
 function App() {
   const { history, resources, isGameStarted, story } = useGameStore();
+  const { apiKey } = useUIStore();
   const { 
     handleAction, 
     retryLastAction,
@@ -32,6 +33,8 @@ function App() {
   const [rightPanelTab, setRightPanelTab] = useState<'inventory' | 'relationships'>('inventory');
   const [mobileTab, setMobileTab] = useState<'status' | 'inventory' | 'relationships'>('status');
   
+  const hasInitialized = useRef(false);
+
   // One-time cleanup for legacy API key
   useEffect(() => {
     const CLEANUP_KEY = 'has_cleared_legacy_api_key_v1';
@@ -41,13 +44,26 @@ function App() {
     }
   }, []);
 
+  // Reset initialization flag when API key changes, allowing retry
+  useEffect(() => {
+    if (apiKey && isGameStarted && history.length === 0) {
+       hasInitialized.current = false;
+    }
+  }, [apiKey, isGameStarted, history.length]);
+
   // Initialize game if started but no history
   useEffect(() => {
-    if (isGameStarted && history.length === 0 && !isProcessing) {
-      handleAction('init', '开始游戏');
+    // Only attempt initialization if we have an API key
+    if (isGameStarted && history.length === 0 && !isProcessing && !hasInitialized.current && apiKey) {
+      hasInitialized.current = true;
+      handleAction('init', '开始游戏').catch(() => {
+        console.error("Initialization failed.");
+        // If failed, we don't reset hasInitialized immediately to avoid loop.
+        // User needs to update API key or refresh.
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isGameStarted, history.length, isProcessing]);
+  }, [isGameStarted, history.length, isProcessing, apiKey]);
 
   // Combine history into a single narrative string for display
   const narrativeMessages = history
