@@ -73,7 +73,7 @@ function App() {
         
       {/* Mobile Header */}
       <header className="md:hidden h-14 border-b border-text-muted/30 flex items-center px-4 justify-between bg-surface/80 backdrop-blur z-20">
-        <span className="font-serif text-accent-lantern font-bold">苍白笔记</span>
+        <span className="font-serif text-accent-lantern font-bold">苍白卷宗</span>
         <div className="flex items-center gap-4">
           <div className="flex gap-3 text-xs font-mono text-text-secondary">
             <span title="资金">£{resources.funds}</span>

@@ -1,10 +1,10 @@
-# 🕯️ Pale Notes | 苍白笔记
+# 🕯️ Pale Notes | 苍白卷宗
 
 > "在1900年代的伦敦阴影下，凡俗的职责与隐秘的渴望交织..."
 
 ![Home Page](md_pics/home_page.png)
 
-**Pale Notes (苍白笔记)** 是一款由 **LLM (DeepSeek R1)** 驱动的文字角色扮演游戏。它深受《密教模拟器 (Cultist Simulator)》与《无光之海 (Sunless Sea)》等“天气工厂”风格作品的启发，旨在探索大语言模型在沉浸式叙事与动态游戏机制结合上的可能性。
+**Pale Notes (苍白卷宗)** 是一款由 **LLM (DeepSeek R1)** 驱动的文字角色扮演游戏。它深受《密教模拟器 (Cultist Simulator)》与《无光之海 (Sunless Sea)》等“天气工厂”风格作品的启发，旨在探索大语言模型在沉浸式叙事与动态游戏机制结合上的可能性。
 
 在这个游戏中，没有固定的剧本。你的每一个选择，都会被 AI 实时演绎，编织出独一无二的故事。
 
