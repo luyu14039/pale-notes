@@ -294,7 +294,8 @@ export function StartScreen() {
       </div>
 
       {/* API Key Prompt - Fixed Position, No Animation */}
-      <div className="fixed top-4 left-4 z-[60] flex justify-center pointer-events-none">
+      {/* Desktop: Fixed Top Left */}
+      <div className="hidden md:flex fixed top-4 left-4 z-[60] justify-center pointer-events-none">
         <div 
           onClick={() => setApiKeyModalOpen(true)}
           className="cursor-pointer pointer-events-auto bg-black/80 border border-accent-forge/50 text-accent-forge px-4 py-2 rounded shadow-[0_0_20px_rgba(249,115,22,0.2)] hover:bg-accent-forge/10 transition-colors max-w-xs text-left backdrop-blur-sm"
@@ -304,17 +305,60 @@ export function StartScreen() {
         </div>
       </div>
 
+      {/* Mobile: Inline Prompt below title */}
+      <div className="md:hidden w-full flex justify-center mt-4 z-20 relative px-6">
+        <div 
+          onClick={() => setApiKeyModalOpen(true)}
+          className="cursor-pointer bg-black/60 border border-accent-forge/50 text-accent-forge px-3 py-2 rounded text-center backdrop-blur-sm w-full max-w-xs"
+        >
+          <p className="font-bold text-xs">⚠ 配置 DeepSeek API Key</p>
+        </div>
+      </div>
+
       {/* Footer Info & Stats */}
-      <div className="fixed bottom-2 w-full text-center z-50 flex flex-col items-center gap-1 pointer-events-none select-none">
-        <div className="text-[10px] text-text-muted/30 font-serif tracking-wider px-4 flex flex-col gap-1">
-          <p>基于 Weather Factory 作品二创 | 素材版权归原作者所有 | 仅供非商业交流</p>
-          <div className="flex gap-4 justify-center pointer-events-auto">
-            <a href="https://github.com/luyu14039/Hush-House" target="_blank" rel="noopener noreferrer" className="hover:text-accent-lantern transition-colors">Hush House</a>
-            <span>•</span>
-            <a href="https://github.com/luyu14039/Which-hour-will-you-serve" target="_blank" rel="noopener noreferrer" className="hover:text-accent-lantern transition-colors">Which Hour Will You Serve?</a>
+      <div className="fixed bottom-0 w-full z-50 flex flex-col items-center pointer-events-none select-none bg-gradient-to-t from-black/95 via-black/80 to-transparent pb-2 pt-12 md:pt-8">
+        <div className="text-xs font-serif tracking-wider px-4 flex flex-col gap-3 w-full max-w-4xl">
+          
+          {/* Other Projects Links */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 pointer-events-auto">
+            <a 
+              href="https://github.com/luyu14039/Hush-House" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="group flex flex-col items-center md:items-end text-center md:text-right gap-1 p-2 rounded hover:bg-white/5 transition-colors"
+            >
+              <span className="text-accent-lantern font-bold group-hover:underline decoration-accent-lantern/50 underline-offset-4">Hush House / 噤声书屋</span>
+              <span className="hidden md:block text-[10px] text-text-secondary/80 group-hover:text-text-primary transition-colors">
+                基于 LLM 的《密教模拟器》与《司辰之书》沉浸式阅读器与知识图谱
+              </span>
+            </a>
+
+            <a 
+              href="https://github.com/luyu14039/Which-hour-will-you-serve" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="group flex flex-col items-center md:items-start text-center md:text-left gap-1 p-2 rounded hover:bg-white/5 transition-colors"
+            >
+              <span className="text-accent-lantern font-bold group-hover:underline decoration-accent-lantern/50 underline-offset-4">Which Hour Will You Serve?</span>
+              <span className="hidden md:block text-[10px] text-text-secondary/80 group-hover:text-text-primary transition-colors">
+                寻找命定司辰的沉浸式互动测试，包含 AI 命运书写与密教黄历
+              </span>
+            </a>
+          </div>
+
+          <div className="flex flex-col items-center gap-1 border-t border-white/10 pt-2 mt-1">
+            <p className="text-[10px] text-text-muted scale-90 md:scale-100 origin-center">基于 Weather Factory 作品二创 | 素材版权归原作者所有 | 仅供非商业交流</p>
+            <p 
+              className="text-text-secondary hover:text-accent-lantern transition-colors cursor-pointer pointer-events-auto flex items-center gap-1 py-1 scale-90 md:scale-100 origin-center" 
+              onClick={() => window.open('https://github.com/luyu14039/pale-notes', '_blank')}
+            >
+              <span>如果你喜欢这个项目，欢迎在 GitHub 上点一颗 Star</span>
+              <span className="text-yellow-500">★</span>
+            </p>
           </div>
         </div>
-        <div className="text-[10px] text-text-muted/40 font-mono flex justify-center gap-4">
+
+        <div className="text-[10px] text-text-muted/40 font-mono flex justify-center gap-4 mt-1 scale-90 md:scale-100 origin-center">
           <span id="busuanzi_container_site_pv">
             Total Views: <span id="busuanzi_value_site_pv" className="text-text-muted/60">--</span>
           </span>

@@ -48,7 +48,7 @@ export function useGameEngine(): GameEngineReturn {
     for (const key in aspects) {
       const value = aspects[key];
       if (value > max) {
-        max = value;
+        max = value; 
         dominant = key;
       }
     }
