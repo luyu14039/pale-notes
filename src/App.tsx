@@ -11,6 +11,7 @@ import { StatusBar } from '@/components/StatusBar';
 import { ChapterOverlay } from '@/components/ChapterOverlay';
 import { ChapterEndScreen } from '@/components/ChapterEndScreen';
 import { useGameStore } from '@/stores/game';
+import { useUIStore } from '@/stores/ui';
 import { useGameEngine } from '@/hooks/useGameEngine';
 import { Menu, X } from 'lucide-react';
 
@@ -31,6 +32,15 @@ function App() {
   const [rightPanelTab, setRightPanelTab] = useState<'inventory' | 'relationships'>('inventory');
   const [mobileTab, setMobileTab] = useState<'status' | 'inventory' | 'relationships'>('status');
   
+  // One-time cleanup for legacy API key
+  useEffect(() => {
+    const CLEANUP_KEY = 'has_cleared_legacy_api_key_v1';
+    if (!localStorage.getItem(CLEANUP_KEY)) {
+      useUIStore.getState().setApiKey('');
+      localStorage.setItem(CLEANUP_KEY, 'true');
+    }
+  }, []);
+
   // Initialize game if started but no history
   useEffect(() => {
     if (isGameStarted && history.length === 0 && !isProcessing) {

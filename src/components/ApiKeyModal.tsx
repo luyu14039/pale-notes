@@ -2,9 +2,6 @@ import { useState } from 'react';
 import { useUIStore } from '@/stores/ui';
 import { deepseekChat } from '@/api/deepseek';
 
-// TODO: 请在此处填入默认的 API Key
-const DEFAULT_API_KEY = 'sk-YOUR_DEFAULT_KEY_HERE';
-
 export function ApiKeyModal() {
   const { apiKey, setApiKey, isApiKeyModalOpen, setApiKeyModalOpen } = useUIStore();
   const [inputKey, setInputKey] = useState(apiKey);
@@ -33,13 +30,6 @@ export function ApiKeyModal() {
 
   const handleSave = () => verifyAndSave(inputKey);
 
-  const handleUseDefault = () => {
-    // 直接使用默认 Key，跳过验证步骤，以便用户能立即进入游戏
-    // 注意：如果默认 Key 无效，游戏过程中可能会报错
-    setApiKey(DEFAULT_API_KEY);
-    setApiKeyModalOpen(false);
-  };
-
   const handleClose = () => {
     if (apiKey) {
       setApiKeyModalOpen(false);
@@ -65,16 +55,16 @@ export function ApiKeyModal() {
             ✕
           </button>
         )}
-        <h2 className="text-xl font-serif text-accent-lantern">配置 DeepSeek API Key</h2>
-        <div className="space-y-2 text-sm text-text-secondary">
-          <p>
-            本游戏基于 DeepSeek R1 模型生成剧情。
-          </p>
-          <p className="text-accent-forge">
-            注意：目前公共 Key 额度非常有限，强烈建议使用您自己的 API Key 以获得最佳体验。
+        <h2 className="text-xl font-serif text-accent-lantern">欢迎来到苍白卷宗</h2>
+        <div className="space-y-4 text-sm text-text-secondary">
+          <p className="text-text-primary font-bold text-base">
+            感谢大家的访问和支持！
           </p>
           <p>
-            您的 Key 仅存储在本地浏览器中，不会上传到任何服务器。
+            由于访问量激增，作者提供的公共 Key 额度已耗尽。为了继续您的旅程，请在下方填入您自己的 DeepSeek API Key。
+          </p>
+          <p className="text-xs text-text-muted bg-surface/50 p-2 rounded border border-text-muted/20">
+            您的 Key 仅存储在本地浏览器中，直接发送至 DeepSeek 官方接口，不会经过任何第三方服务器。
           </p>
         </div>
         
@@ -87,13 +77,6 @@ export function ApiKeyModal() {
         />
 
         <div className="flex justify-end gap-2">
-          <button 
-            onClick={handleUseDefault}
-            disabled={status === 'testing'}
-            className="px-4 py-2 text-sm border border-text-muted rounded text-text-secondary hover:text-text-primary hover:border-text-primary transition-colors"
-          >
-            使用默认 Key
-          </button>
           <button 
             onClick={handleSave}
             disabled={status === 'testing' || !inputKey}
