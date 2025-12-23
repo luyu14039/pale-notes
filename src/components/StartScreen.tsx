@@ -38,6 +38,41 @@ const TRAITS = [
   { id: 'curious', title: '窥视者', desc: '忍不住打开锁着的门。', bonus: { knock: 1 } }
 ];
 
+const SURNAMES = [
+  '史密斯', '琼斯', '威廉姆斯', '布朗', '泰勒', '戴维斯', '埃文斯', '托马斯', '罗伯茨', '约翰逊',
+  '威尔逊', '罗宾逊', '赖特', '汤普森', '怀特', '霍尔', '格林', '沃克', '爱德华兹', '伍德',
+  '休斯', '特纳', '刘易斯', '哈里斯', '克拉克', '库珀', '金', '沃德', '马丁', '贝克',
+  '希尔', '菲利普斯', '摩尔', '艾伦', '卡特', '詹姆斯', '奈特', '费舍尔', '贝内特', '韦伯',
+  '卡文迪许', '布莱克伍德', '斯特林', '阿什克罗夫特', '索恩', '克劳利', '万斯', '洛克伍德', '温特', '弗罗斯特'
+];
+
+const MALE_NAMES = [
+  '亚瑟', '威廉', '约翰', '乔治', '托马斯', '詹姆斯', '亨利', '爱德华', '查尔斯', '弗雷德里克',
+  '沃尔特', '阿尔伯特', '罗伯特', '约瑟夫', '弗兰克', '哈利', '厄内斯特', '理查德', '阿尔弗雷德', '哈罗德',
+  '珀西瓦尔', '朱利安', '维克多', '亚历山大', '西奥多', '奥利弗', '塞巴斯蒂安', '菲利克斯', '塞拉斯', '以利亚'
+];
+
+const FEMALE_NAMES = [
+  '玛丽', '弗洛伦斯', '安妮', '伊迪丝', '爱丽丝', '伊丽莎白', '艾尔西', '多萝西', '埃塞尔', '多丽丝',
+  '玛格丽特', '莉莲', '艾薇', '罗斯', '格拉迪斯', '艾达', '比阿特丽斯', '克拉拉', '黛西', '维奥莱特',
+  '埃莉诺', '夏洛特', '维多利亚', '索菲亚', '伊莎贝拉', '伊芙琳', '阿米莉亚', '格蕾丝', '黑兹尔', '奥利夫'
+];
+
+const generateName = (gender: string) => {
+  const surname = SURNAMES[Math.floor(Math.random() * SURNAMES.length)];
+  let firstName = '';
+  if (gender === '女') {
+    firstName = FEMALE_NAMES[Math.floor(Math.random() * FEMALE_NAMES.length)];
+  } else if (gender === '男') {
+    firstName = MALE_NAMES[Math.floor(Math.random() * MALE_NAMES.length)];
+  } else {
+    // Randomly pick male or female for 'Other'
+    const allNames = [...MALE_NAMES, ...FEMALE_NAMES];
+    firstName = allNames[Math.floor(Math.random() * allNames.length)];
+  }
+  return `${firstName}·${surname}`;
+};
+
 const MAX_POINTS = 9;
 
 export function StartScreen() {
@@ -76,7 +111,7 @@ export function StartScreen() {
     origin: 'rich',
     childhood: 'bookworm',
     uniqueTrait: 'dreamer',
-    name: '无名氏',
+    name: generateName('其他'),
     gender: '其他',
     appearance: '迷雾中的身影。'
   });
@@ -409,7 +444,7 @@ export function StartScreen() {
                   {['男', '女', '其他'].map(g => (
                     <button
                       key={g}
-                      onClick={() => setSelection(s => ({ ...s, gender: g as any }))}
+                      onClick={() => setSelection(s => ({ ...s, gender: g as any, name: generateName(g) }))}
                       className={`flex-1 py-1 px-2 text-xs border rounded capitalize ${
                         selection.gender === g 
                           ? 'bg-accent-lantern/20 border-accent-lantern text-accent-lantern' 
