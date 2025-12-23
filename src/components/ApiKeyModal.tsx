@@ -1,11 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUIStore } from '@/stores/ui';
 import { deepseekChat } from '@/api/deepseek';
 
 export function ApiKeyModal() {
   const { apiKey, setApiKey, isApiKeyModalOpen, setApiKeyModalOpen } = useUIStore();
-  const [inputKey, setInputKey] = useState(apiKey);
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  
+  // 显示条件提前定义
+  const shouldShow = isApiKeyModalOpen || (!apiKey && status !== 'success');
+  
+  const [inputKey, setInputKey] = useState('');
+
+  // 每次显示时清空输入框
+  useEffect(() => {
+    if (shouldShow) {
+      setInputKey('');
+    }
+  }, [shouldShow]);
 
   const verifyAndSave = async (key: string) => {
     setStatus('testing');
@@ -36,11 +47,6 @@ export function ApiKeyModal() {
       setStatus('idle');
     }
   };
-
-  // 显示条件：
-  // 1. 显式打开 (isApiKeyModalOpen)
-  // 2. 没有 apiKey 且不在测试/错误状态 (强制显示)
-  const shouldShow = isApiKeyModalOpen || (!apiKey && status !== 'success');
 
   if (!shouldShow) return null;
 
