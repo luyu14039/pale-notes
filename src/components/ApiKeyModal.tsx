@@ -10,6 +10,7 @@ export function ApiKeyModal() {
   const shouldShow = isApiKeyModalOpen || (!apiKey && status !== 'success');
   
   const [inputKey, setInputKey] = useState('');
+  const [lastError, setLastError] = useState<any>(null);
 
   // 每次显示时清空输入框
   useEffect(() => {
@@ -20,6 +21,7 @@ export function ApiKeyModal() {
 
   const verifyAndSave = async (key: string) => {
     setStatus('testing');
+    setLastError(null);
     try {
       // 简单测试 API Key 是否有效
       await deepseekChat({
@@ -35,6 +37,7 @@ export function ApiKeyModal() {
       }, 1000);
     } catch (error) {
       console.error(error);
+      setLastError(error);
       setStatus('error');
     }
   };
@@ -46,6 +49,26 @@ export function ApiKeyModal() {
       setApiKeyModalOpen(false);
       setStatus('idle');
     }
+  };
+
+  const exportErrorLog = () => {
+    if (!lastError) return;
+    const errorInfo = {
+      message: lastError?.message || String(lastError),
+      stack: lastError?.stack,
+      time: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      inputKeyMasked: inputKey ? `${inputKey.slice(0, 3)}...${inputKey.slice(-4)}` : 'empty'
+    };
+    const blob = new Blob([JSON.stringify(errorInfo, null, 2)], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pale-notes-error.log';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   if (!shouldShow) return null;
@@ -100,7 +123,15 @@ export function ApiKeyModal() {
         </div>
 
         {status === 'error' && (
-          <p className="text-xs text-accent-grail">验证失败，请检查 Key 是否正确或额度是否充足。</p>
+          <div className="space-y-2">
+            <p className="text-xs text-accent-grail">验证失败，请检查 Key 是否正确或额度是否充足。</p>
+            <button
+              onClick={exportErrorLog}
+              className="text-xs text-text-muted underline hover:text-text-primary"
+            >
+              导出错误日志
+            </button>
+          </div>
         )}
       </div>
     </div>
