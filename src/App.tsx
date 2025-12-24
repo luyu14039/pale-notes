@@ -27,7 +27,8 @@ function App() {
     streamingContent, 
     streamingReasoning,
     debugDataInput,
-    debugDataOutput
+    debugDataOutput,
+    isInputAllowed
   } = useGameEngine();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<'inventory' | 'relationships'>('inventory');
@@ -196,6 +197,8 @@ function App() {
           <ChoicePanel 
             options={currentOptions} 
             disabled={isProcessing}
+            isInputAllowed={isInputAllowed}
+            onCustomAction={(text) => handleAction('custom_action', text)}
             onSelect={(id) => {
               const opt = currentOptions.find(o => o.id === id);
               handleAction(id, opt?.text || id);

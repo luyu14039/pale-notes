@@ -20,6 +20,25 @@ export const LORES: Record<string, { name: string; description: string; aspect: 
   // Add more lores here as needed
 };
 
+export const ASPECT_EFFECTS: Record<string, Partial<Record<string, number>>> = {
+  // Books (Reading)
+  'book_lantern_1': { lantern: 1 },
+  'book_moth_1': { moth: 1 },
+  'book_grail_1': { grail: 1 },
+  'book_forge_1': { forge: 1 },
+  'book_edge_1': { edge: 1 },
+  'book_winter_1': { winter: 1 },
+  'book_heart_1': { heart: 1 },
+  'book_knock_1': { knock: 1 },
+  
+  // Lores (Using)
+  'lore_lantern_1': { lantern: 1 },
+  'lore_moth_1': { moth: 1 },
+  
+  // Items (Using)
+  'item_knife': { edge: 1 },
+};
+
 export const getClue = (id: string) => {
   const clue = CLUES[id];
   return clue ? { id, ...clue } : null;
@@ -28,4 +47,8 @@ export const getClue = (id: string) => {
 export const getLore = (id: string) => {
   const lore = LORES[id];
   return lore ? { id, ...lore } : null;
+};
+
+export const getAspectEffect = (id: string) => {
+  return ASPECT_EFFECTS[id] || null;
 };

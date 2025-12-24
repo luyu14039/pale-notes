@@ -12,7 +12,9 @@ interface Option {
 interface ChoicePanelProps {
   options: Option[];
   onSelect: (id: string) => void;
+  onCustomAction?: (text: string) => void;
   disabled?: boolean;
+  isInputAllowed?: boolean;
 }
 
 const styleMap = {
@@ -28,8 +30,9 @@ const styleMap = {
   story: 'border-text-primary text-text-primary bg-surface/80 hover:bg-surface hover:border-accent-lantern font-bold tracking-wide',
 };
 
-export function ChoicePanel({ options, onSelect, disabled }: ChoicePanelProps) {
+export function ChoicePanel({ options, onSelect, onCustomAction, disabled, isInputAllowed = true }: ChoicePanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [customInput, setCustomInput] = useState('');
 
   // Auto-expand when options change
   useEffect(() => {
@@ -38,7 +41,15 @@ export function ChoicePanel({ options, onSelect, disabled }: ChoicePanelProps) {
     }
   }, [options]);
 
-  if (options.length === 0) return null;
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (customInput.trim() && onCustomAction && !disabled && isInputAllowed) {
+      onCustomAction(customInput.trim());
+      setCustomInput('');
+    }
+  };
+
+  if (options.length === 0 && !isInputAllowed) return null;
 
   return (
     <div className="border-t border-text-muted/20 bg-black/40 backdrop-blur-md shadow-[0_-10px_40px_rgba(0,0,0,0.3)] transition-all duration-300">
@@ -59,6 +70,31 @@ export function ChoicePanel({ options, onSelect, disabled }: ChoicePanelProps) {
             className="overflow-hidden"
           >
             <div className="p-4 md:p-6 pt-0 flex flex-col gap-3 max-w-3xl mx-auto">
+              {/* Custom Input Field */}
+              {isInputAllowed && (
+                <form onSubmit={handleCustomSubmit} className="mb-4">
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      value={customInput}
+                      onChange={(e) => setCustomInput(e.target.value)}
+                      placeholder="输入你的行动..."
+                      disabled={disabled}
+                      className="w-full bg-black/20 border border-text-muted/30 rounded-sm p-3 pl-4 pr-12 text-text-primary placeholder:text-text-muted/50 focus:border-accent-lantern focus:bg-black/40 outline-none transition-all font-serif"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!customInput.trim() || disabled}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-text-muted hover:text-accent-lantern disabled:opacity-30 transition-colors"
+                    >
+                      <span className="sr-only">发送</span>
+                      →
+                    </button>
+                    <div className="absolute inset-0 border border-transparent group-hover:border-text-muted/10 pointer-events-none transition-colors rounded-sm" />
+                  </div>
+                </form>
+              )}
+
               <div className="text-xs font-serif text-text-muted uppercase tracking-[0.3em] text-center mb-4 opacity-60">
                 — 抉择 —
               </div>

@@ -171,6 +171,7 @@ export const NARRATIVE_PROMPT = `
    - **严禁跳过**：不要概括事件，不要直接跳到事件结束后的时间点。
    - **严禁快进**：如果 Context 描写的是“在下水道发现尸体”，你就必须描写下水道、尸体和发现的过程，**绝对不能**直接写“你回家后...”。
    - **保持当下**：故事的时间点必须停留在事件发生的**那一刻**，等待玩家做出反应。
+   - **响应紧迫感 (Urgency)**：如果 Context 中包含 \`[URGENCY INSTRUCTION]\`，你必须在叙事中体现出时间的流逝和局势的紧迫，暗示玩家必须尽快做出决定。
    - **忽略数据指令**：如果 Context 中包含 \`[DATA_INSTRUCTION]\` 或 \`[INSTRUCTION FOR DATA AI]\` 标记的区块，请**完全忽略**其中的内容，不要将其输出到故事中。这些是给数据引擎看的。
 
 2. **引导**：如果输入包含 \`storyContext\`，必须围绕其大纲叙事。
@@ -201,18 +202,36 @@ export const DATA_ANALYSIS_PROMPT = `
    - 购买物品/服务 -> \`MO (CRITICAL)**：
    - **物品/知识反馈**：如果玩家获得了带有特定性相的物品或密传，**必须**增加对应的性相值。
    - **性相更新限制 (CRITICAL)**：
-     - **严禁**根据玩家的行为倾向、对话风格或心理活动来更新性相。
-     - **仅当**玩家获得了明确的**新知识 (Lore)** 或 **新物品 (Item)** 时，才允许更新性相。
-     - **例外**：如果 Story Context 中有明确的 [INSTRUCTION] 要求更新性相，则可以执行。
+     - **严禁**直接输出 \`MODIFY_ASPECT\` 来改变性相，除非是**自定义用户行动**。
+     - **常规情况**：必须通过以下方式间接改变性相：
+       - 玩家阅读书籍 -> 生成 \`MARK_BOOK_READ\` (系统会自动计算性相变化)。
+       - 玩家使用密传 -> 生成 \`USE_LORE\` (系统会自动计算性相变化)。
+       - 玩家使用物品 -> 生成 \`USE_ITEM\` (系统会自动计算性相变化)。
+     - **自定义行动例外 (Custom Action Exception)**：
+       - 如果 \`userActionType\` 为 \`custom\`，且该行动强烈体现了某种性相（如“暴力破门”体现 Edge，“冷静分析”体现 Lantern），**允许**生成 \`MODIFY_ASPECT\`。
+       - 此时，请根据行动的性质，给予 +1 的性相奖励。
      - *错误*：“玩家表现得很理性 -> MODIFY_ASPECT: lantern +1” (绝对禁止)
-     - *正确*：“玩家阅读了《守夜人的笔记》 -> MODIFY_ASPECT: lantern +1” (允许)
+     - *正确*：“玩家阅读了《守夜人的笔记》 -> MARK_BOOK_READ: book_lantern_1” (允许)
+     - *正确*：“玩家输入‘我用拳头砸碎了玻璃’ -> MODIFY_ASPECT: edge +1” (允许)
 
 3. **物品流转**：
    - 获得新物品 -> \`ADD_ITEM\` (必须提供物品ID，如 "old_key")
    - 失去/消耗物品 -> \`REMOVE_ITEM\`
    - **注意**：如果 Context 中提供了物品 ID 映射表，务必使用正确的 ID。
 
-4. **知识积累**：
+4. **资源经济与恢复 (Resource Economy & Restoration)**：
+   - **不要只扣除，也要恢复**。
+   - **Funds (资金)**：
+     - 玩家完成工作、出售物品或获得意外之财时，**必须**增加资金。
+     - *例子*：“你完成了防剿局的文书工作” -> \`MODIFY_RESOURCE: funds +1\`。
+   - **Sanity (理智)**：
+     - 玩家获得安宁、解决谜题、击败恐惧或通过冥想时，**必须**恢复理智。
+     - *例子*：“你喝了一杯热茶，感到平静” -> \`MODIFY_RESOURCE: sanity +1\`。
+   - **Health (健康)**：
+     - 玩家进食、休息或接受治疗时，**必须**恢复健康。
+     - *例子*：“你睡了一个好觉” -> \`MODIFY_RESOURCE: health +1\`。
+
+5. **知识积累**：
    - 获得关键线索 -> \`ADD_FACT\`
    - 读完一本书 -> \`MARK_BOOK_READ\`
    - 理解一段密传 -> \`MARK_LORE_MASTERED\`
@@ -281,6 +300,8 @@ export const DATA_ANALYSIS_PROMPT = `
     { "type": "ADD_CHARACTER", "payload": { "id": "string", "name": "string", "description": "string", "relationship": "string", "status": "string", "location": "string" } },
     { "type": "UPDATE_CHARACTER", "payload": { "id": "string", "updates": { "relationship": "string", "status": "string", "location": "string", "description": "string" } } },
     { "type": "ADD_LOCATION", "payload": { "id": "string", "name": "string", "description": "string", "isUnlocked": boolean } },
+    { "type": "USE_LORE", "target": "string" },
+    { "type": "USE_ITEM", "target": "string" },
     { "type": "MODIFY_ASPECT", "target": "lantern" | "forge" | "edge" | "winter" | "heart" | "grail" | "moth" | "knock", "value": number },
     { "type": "MODIFY_TIME", "value": number },
     { "type": "SET_IDENTITY", "target": "string" }

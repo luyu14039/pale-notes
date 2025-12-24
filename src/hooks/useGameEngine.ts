@@ -5,6 +5,7 @@ import { useMetaStore } from '@/stores/meta';
 import { deepseekChat, DeepSeekChatMessage } from '@/api/deepseek';
 import { NARRATIVE_PROMPT, DATA_ANALYSIS_PROMPT, PRINCIPLE_STYLES, CHAPTER_GUIDES } from '@/constants/prompts';
 import { getItemTemplate } from '@/constants/items';
+import { getAspectEffect } from '@/constants/gameData';
 import { storySystem } from '@/systems/StorySystem';
 
 interface GameEngineReturn {
@@ -18,6 +19,7 @@ interface GameEngineReturn {
   streamingReasoning: string | null;
   debugDataInput: string | null;
   debugDataOutput: string | null;
+  isInputAllowed: boolean;
 }
 
 export function useGameEngine(): GameEngineReturn {
@@ -41,6 +43,17 @@ export function useGameEngine(): GameEngineReturn {
   // Debug states
   const [debugDataInput, setDebugDataInput] = useState<string | null>(null);
   const [debugDataOutput, setDebugDataOutput] = useState<string | null>(null);
+
+  // Calculate isInputAllowed
+  const { story, turnsSinceLastMajorEvent } = store;
+  let isInputAllowed = true;
+  if (story.activeEventId) {
+      const event = storySystem.getEvent(story.activeEventId);
+      // If we are in an active event with options, and turns >= 5, force mode is active
+      if (event && event.options && event.options.length > 0 && turnsSinceLastMajorEvent >= 5) {
+          isInputAllowed = false;
+      }
+  }
 
   const getDominantAspect = (aspects: any) => {
     let max = 0;
@@ -269,7 +282,47 @@ export function useGameEngine(): GameEngineReturn {
         case 'MARK_BOOK_READ':
           markBookAsRead(change.target);
           summaryLines.push(`阅读书籍: ${change.target}`);
+          // Hardcoded Aspect Effect
+          const bookEffect = getAspectEffect(change.target);
+          if (bookEffect) {
+             const currentAspects = useGameStore.getState().aspects;
+             const newAspects = { ...currentAspects };
+             Object.entries(bookEffect).forEach(([key, val]) => {
+                // @ts-ignore
+                newAspects[key] = (newAspects[key] || 0) + (val as number);
+                summaryLines.push(`性相: ${key} +${val}`);
+             });
+             setAspects(newAspects);
+          }
           break;
+        case 'USE_LORE':
+          summaryLines.push(`使用密传: ${change.target}`);
+          const loreEffect = getAspectEffect(change.target);
+          if (loreEffect) {
+             const currentAspects = useGameStore.getState().aspects;
+             const newAspects = { ...currentAspects };
+             Object.entries(loreEffect).forEach(([key, val]) => {
+                // @ts-ignore
+                newAspects[key] = (newAspects[key] || 0) + (val as number);
+                summaryLines.push(`性相: ${key} +${val}`);
+             });
+             setAspects(newAspects);
+          }
+          break;
+        case 'USE_ITEM':
+           summaryLines.push(`使用物品: ${change.target}`);
+           const itemEffect = getAspectEffect(change.target);
+           if (itemEffect) {
+             const currentAspects = useGameStore.getState().aspects;
+             const newAspects = { ...currentAspects };
+             Object.entries(itemEffect).forEach(([key, val]) => {
+                // @ts-ignore
+                newAspects[key] = (newAspects[key] || 0) + (val as number);
+                summaryLines.push(`性相: ${key} +${val}`);
+             });
+             setAspects(newAspects);
+           }
+           break;
         case 'MARK_LORE_MASTERED':
           let loreName = change.target;
           if (change.payload) {
@@ -376,7 +429,7 @@ export function useGameEngine(): GameEngineReturn {
   };
 
   // Core function to interact with LLM
-  const processTurn = async (actionText: string, storyContext?: string, requiredOptions?: any[], goalOptions?: any[]) => {
+  const processTurn = async (actionText: string, actionType: 'option' | 'custom' = 'option', storyContext?: string, requiredOptions?: any[], goalOptions?: any[]) => {
     if (!apiKey) {
       setLastError("API Key is missing");
       return;
@@ -417,6 +470,9 @@ export function useGameEngine(): GameEngineReturn {
           // Meta Update: Record Key Event
           useMetaStore.getState().addKeyEvent(activeEvent.id);
 
+          // Reset turn counter for the new event
+          useGameStore.getState().resetTurnCounter();
+
           // Process onEnter effects immediately
           if (activeEvent.onEnter) {
             storySystem.processEffects(activeEvent.onEnter, currentStore);
@@ -425,19 +481,23 @@ export function useGameEngine(): GameEngineReturn {
       }
 
       // If we have an active event, inject its content
+      let pendingKeyOptions: any[] = [];
       if (activeEvent) {
         currentStoryContext = `[系统事件触发: ${activeEvent.title}]\n${activeEvent.text}`;
         
-        // If the event has options, we pass them as goalOptions (Hybrid Mode)
-        // This ensures the story options are present, but allows AI to generate flavor options
+        // Check urgency
+        const currentTurns = useGameStore.getState().turnsSinceLastMajorEvent;
+        if (currentTurns >= 4) {
+           currentStoryContext += `\n[URGENCY INSTRUCTION]: The player has lingered in this scene for too long (${currentTurns} turns). The narrative MUST now strongly hint at the urgency of the situation or the inevitability of the key event. Do not allow further delay.`;
+        }
+
+        // Store options for later injection, do NOT pass to AI as goalOptions
         if (activeEvent.options && activeEvent.options.length > 0) {
-          const eventOptions = activeEvent.options.map(opt => ({
+          pendingKeyOptions = activeEvent.options.map(opt => ({
             id: opt.id,
             text: opt.text,
             style: 'neutral'
           }));
-          
-          currentGoalOptions = currentGoalOptions ? [...currentGoalOptions, ...eventOptions] : eventOptions;
         }
       } else {
         // If NO active event, inject completed events context to prevent repetition
@@ -523,6 +583,7 @@ export function useGameEngine(): GameEngineReturn {
       useUIStore.getState().setStatusMessage("Analyzing world state...");
       const dataAnalysisContext = JSON.stringify({
         userAction: actionText,
+        userActionType: actionType, // Explicitly tell AI if this is a custom action
         narrativeOutput: fullNarrative,
         storyContext: currentStoryContext, // Pass the story context (with instructions) to Data AI
         requiredOptions: currentRequiredOptions,
@@ -558,6 +619,23 @@ export function useGameEngine(): GameEngineReturn {
 
       try {
         const parsedData = parseResponse(dataContent);
+
+        // Inject Key Options if conditions met
+        if (pendingKeyOptions.length > 0) {
+           const currentTurns = useGameStore.getState().turnsSinceLastMajorEvent;
+           
+           // Force Mode: If turns >= 5, ONLY show key options
+           if (currentTurns >= 5) {
+              parsedData.options = pendingKeyOptions;
+           } 
+           // Inject Mode: If turns >= 2, append key options
+           else if (currentTurns >= 2) {
+              const existingIds = new Set((parsedData.options || []).map((o: any) => o.id));
+              const optionsToInject = pendingKeyOptions.filter(o => !existingIds.has(o.id));
+              parsedData.options = [...(parsedData.options || []), ...optionsToInject];
+           }
+        }
+
         handleStateChanges(parsedData.stateChanges);
         store.setCurrentOptions(parsedData.options || []);
       } catch (e) {
@@ -628,7 +706,8 @@ export function useGameEngine(): GameEngineReturn {
     // Save for retry
     setLastAction({ id: actionId, text: actionText });
 
-    return processTurn(actionText);
+    const actionType = actionId === 'custom_action' ? 'custom' : 'option';
+    return processTurn(actionText, actionType);
   };
 
   const retryLastAction = async () => {
@@ -666,6 +745,7 @@ export function useGameEngine(): GameEngineReturn {
     streamingContent,
     streamingReasoning,
     debugDataInput,
-    debugDataOutput
+    debugDataOutput,
+    isInputAllowed
   };
 }
