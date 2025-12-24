@@ -68,10 +68,17 @@ export function ApiKeyModal() {
           </p>
           <p>
             由于访问量激增，作者提供的公共 Key 额度已耗尽。为了继续您的旅程，请在下方填入您自己的 DeepSeek API Key。
+            <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="text-accent-lantern hover:underline ml-1 inline-flex items-center gap-1">
+              (点击前往 DeepSeek 开放平台获取)
+            </a>
           </p>
           <p className="text-xs text-text-muted bg-surface/50 p-2 rounded border border-text-muted/20">
             您的 Key 仅存储在本地浏览器中，直接发送至 DeepSeek 官方接口，不会经过任何第三方服务器。
           </p>
+          <div className="text-xs text-accent-forge/90 border border-accent-forge/30 bg-accent-forge/5 p-2 rounded">
+            <p className="font-bold mb-1">⚠️ 无法连接？</p>
+            <p>如果确定 Key 正确但提示验证失败，很有可能是因为开启了 VPN/代理。本项目加载完成后无需代理即可直连 DeepSeek 服务，请尝试关闭代理后重试！</p>
+          </div>
         </div>
         
         <input
