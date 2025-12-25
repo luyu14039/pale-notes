@@ -365,6 +365,20 @@ export function useGameEngine(): GameEngineReturn {
           setIdentity(change.target);
           summaryLines.push(`身份变更: ${change.target}`);
           break;
+        case 'COMPLETE_EVENT':
+          // @ts-ignore
+          useGameStore.getState().completeEvent(change.target);
+          // Also clear active event if it matches
+          if (useGameStore.getState().story.activeEventId === change.target) {
+             setStoryState({ activeEventId: null });
+          }
+          summaryLines.push(`事件完成: ${change.target}`);
+          break;
+        case 'TRIGGER_EVENT':
+           setStoryState({ activeEventId: change.target });
+           useMetaStore.getState().addKeyEvent(change.target);
+           summaryLines.push(`触发事件: ${change.target}`);
+           break;
       }
     });
 

@@ -248,6 +248,14 @@ export const DATA_ANALYSIS_PROMPT = `
    - 读完一本书 -> \`MARK_BOOK_READ\`
    - 理解一段密传 -> \`MARK_LORE_MASTERED\`
 
+6. **事件状态管理 (Event State Management)**:
+   - **自动完成事件 (Auto-Complete Event)**:
+     - 如果当前有一个 \`activeEventId\` (在 \`storyContext\` 或 \`currentState.story\` 中可见)，且 \`narrativeOutput\` 表明玩家已经完成了该事件的核心冲突（例如“逃离了火海”、“击败了敌人”），**必须**生成 \`COMPLETE_EVENT\`。
+     - *例子*: 当前事件是 \`prologue_rich\` (火海逃生)，剧情写道“你冲出了燃烧的庄园”，则生成 \`{ "type": "COMPLETE_EVENT", "target": "prologue_rich" }\`。
+     - 这将防止系统重复强制玩家选择“逃离火海”选项。
+   - **触发后续 (Trigger Next)**:
+     - 如果玩家的行为自然导向了下一个逻辑节点（即使没有选特定选项），可以生成 \`TRIGGER_EVENT\` 来强制进入下一个事件。
+
 ### 选项生成协议 (Option Generation Protocol)
 1. **强制模式 (Strict Mode)**：
    - 触发条件：输入包含 \`requiredOptions\`。
@@ -304,7 +312,9 @@ export const DATA_ANALYSIS_PROMPT = `
     { "type": "USE_ITEM", "target": "string" },
     { "type": "MODIFY_ASPECT", "target": "lantern" | "forge" | "edge" | "winter" | "heart" | "grail" | "moth" | "knock", "value": number },
     { "type": "MODIFY_TIME", "value": number },
-    { "type": "SET_IDENTITY", "target": "string" }
+    { "type": "SET_IDENTITY", "target": "string" },
+    { "type": "COMPLETE_EVENT", "target": "string" },
+    { "type": "TRIGGER_EVENT", "target": "string" }
   ],
   "options": [
     {
