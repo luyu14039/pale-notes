@@ -1,138 +1,132 @@
 import { useState, useEffect } from 'react';
 import { useUIStore } from '@/stores/ui';
-import { deepseekChat } from '@/api/deepseek';
+import { AlertTriangle, Server, Box, Key } from 'lucide-react';
 
 export function ApiKeyModal() {
-  const { apiKey, setApiKey, isApiKeyModalOpen, setApiKeyModalOpen } = useUIStore();
-  const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const { apiKey, setApiKey } = useUIStore();
+  const [isOpen, setIsOpen] = useState(false);
   
-  // 显示条件提前定义
-  const shouldShow = isApiKeyModalOpen || (!apiKey && status !== 'success');
-  
+  // 本地表单状态
   const [inputKey, setInputKey] = useState('');
-  const [lastError, setLastError] = useState<any>(null);
+  const [inputUrl, setInputUrl] = useState('');
+  const [inputModel, setInputModel] = useState('');
 
-  // 每次显示时清空输入框
   useEffect(() => {
-    if (shouldShow) {
-      setInputKey('');
+    // 如果没有 API Key，强制显示弹窗
+    if (!apiKey) {
+      setIsOpen(true);
+      setInputUrl(localStorage.getItem('game_api_url') || 'https://api.deepseek.com');
+      setInputModel(localStorage.getItem('game_model_name') || 'deepseek-reasoner');
+    } else {
+      setIsOpen(false);
     }
-  }, [shouldShow]);
+  }, [apiKey]);
 
-  const verifyAndSave = async (key: string) => {
-    setStatus('testing');
-    setLastError(null);
-    try {
-      // 简单测试 API Key 是否有效
-      await deepseekChat({
-        messages: [{ role: 'user', content: 'Hello' }],
-        apiKey: key,
-        stream: false
-      });
-      setApiKey(key);
-      setStatus('success');
-      setTimeout(() => {
-        setApiKeyModalOpen(false);
-        setStatus('idle');
-      }, 1000);
-    } catch (error) {
-      console.error(error);
-      setLastError(error);
-      setStatus('error');
-    }
+  const handleSave = () => {
+    if (!inputKey.trim()) return;
+
+    const finalUrl = inputUrl.trim() || 'https://api.deepseek.com';
+    const finalModel = inputModel.trim() || 'deepseek-reasoner';
+
+    localStorage.setItem('game_api_url', finalUrl);
+    localStorage.setItem('game_model_name', finalModel);
+
+    setApiKey(inputKey.trim());
   };
 
-  const handleSave = () => verifyAndSave(inputKey);
-
-  const handleClose = () => {
-    if (apiKey) {
-      setApiKeyModalOpen(false);
-      setStatus('idle');
-    }
-  };
-
-  const exportErrorLog = () => {
-    if (!lastError) return;
-    const errorInfo = {
-      message: lastError?.message || String(lastError),
-      stack: lastError?.stack,
-      time: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      inputKeyMasked: inputKey ? `${inputKey.slice(0, 3)}...${inputKey.slice(-4)}` : 'empty'
-    };
-    const blob = new Blob([JSON.stringify(errorInfo, null, 2)], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'pale-notes-error.log';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  if (!shouldShow) return null;
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4">
-      <div className="bg-surface border border-text-muted p-6 rounded-lg max-w-md w-full space-y-4 shadow-2xl relative">
-        {apiKey && (
-          <button 
-            onClick={handleClose}
-            className="absolute top-4 right-4 text-text-muted hover:text-text-primary"
-          >
-            ✕
-          </button>
-        )}
-        <h2 className="text-xl font-serif text-accent-lantern">欢迎来到苍白卷宗</h2>
-        <div className="space-y-4 text-sm text-text-secondary">
-          <p className="text-text-primary font-bold text-base">
-            感谢大家的访问和支持！
-          </p>
-          <p>
-            由于访问量激增，作者提供的公共 Key 额度已耗尽。为了继续您的旅程，请在下方填入您自己的 DeepSeek API Key。
-            <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="text-accent-lantern hover:underline ml-1 inline-flex items-center gap-1">
-              (点击前往 DeepSeek 开放平台获取)
-            </a>
-          </p>
-          <p className="text-xs text-text-muted bg-surface/50 p-2 rounded border border-text-muted/20">
-            您的 Key 仅存储在本地浏览器中，直接发送至 DeepSeek 官方接口，不会经过任何第三方服务器。
-          </p>
-          <div className="text-xs text-accent-forge/90 border border-accent-forge/30 bg-accent-forge/5 p-2 rounded">
-            <p className="font-bold mb-1">⚠️ 无法连接？</p>
-            <p>如果确定 Key 正确但提示验证失败，很有可能是因为开启了 VPN/代理。本项目加载完成后无需代理即可直连 DeepSeek 服务，请尝试关闭代理后重试！</p>
-          </div>
-        </div>
+    // 修改 1: z-index 提高到 100，背景色加深防止透视
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+      
+      {/* 修改 2: 增加 max-h-[85vh] 和 overflow-y-auto (防止超出屏幕) */}
+      <div className="bg-neutral-900 border border-neutral-700 w-full max-w-lg shadow-2xl rounded-lg relative flex flex-col max-h-[90vh]">
         
-        <input
-          type="password"
-          value={inputKey}
-          onChange={(e) => setInputKey(e.target.value)}
-          placeholder="sk-..."
-          className="w-full bg-background border border-text-muted rounded p-2 text-text-primary focus:border-accent-lantern outline-none font-mono"
-        />
-
-        <div className="flex justify-end gap-2">
-          <button 
-            onClick={handleSave}
-            disabled={status === 'testing' || !inputKey}
-            className="px-4 py-2 bg-accent-lantern/20 text-accent-lantern border border-accent-lantern/50 rounded hover:bg-accent-lantern/30 disabled:opacity-50 transition-colors"
-          >
-            {status === 'testing' ? '验证中...' : '保存并开始'}
-          </button>
+        {/* 标题区 - 固定在顶部 */}
+        <div className="p-6 pb-2 border-b border-neutral-800">
+            <h2 className="font-serif text-2xl font-bold text-amber-500 tracking-wide">
+            配置 API 服务
+            </h2>
+            <p className="text-neutral-400 text-xs mt-2">
+            支持 DeepSeek、硅基流动、Moonshot 等 OpenAI 格式接口。
+            </p>
         </div>
 
-        {status === 'error' && (
-          <div className="space-y-2">
-            <p className="text-xs text-accent-grail">验证失败，请检查 Key 是否正确或额度是否充足。</p>
-            <button
-              onClick={exportErrorLog}
-              className="text-xs text-text-muted underline hover:text-text-primary"
-            >
-              导出错误日志
-            </button>
+        {/* 内容区 - 可滚动 */}
+        <div className="p-6 pt-4 overflow-y-auto custom-scrollbar space-y-4">
+          
+          {/* 1. API 地址输入 */}
+          <div>
+            <label className="flex items-center gap-2 text-[10px] font-mono text-neutral-500 mb-1 uppercase tracking-wider">
+              <Server size={10} />
+              API Base URL
+            </label>
+            <input 
+              type="text" 
+              value={inputUrl}
+              onChange={(e) => setInputUrl(e.target.value)}
+              placeholder="https://api.deepseek.com"
+              className="w-full bg-black/40 border border-neutral-700 rounded p-2.5 text-neutral-200 focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none transition-all font-mono text-xs"
+            />
+            <p className="text-[10px] text-neutral-600 mt-1">
+              例如: https://api.siliconflow.cn/v1
+            </p>
           </div>
-        )}
+
+          {/* 2. 模型名称输入 */}
+          <div>
+            <label className="flex items-center gap-2 text-[10px] font-mono text-neutral-500 mb-1 uppercase tracking-wider">
+              <Box size={10} />
+              Model Name
+            </label>
+            <input 
+              type="text" 
+              value={inputModel}
+              onChange={(e) => setInputModel(e.target.value)}
+              placeholder="deepseek-reasoner"
+              className="w-full bg-black/40 border border-neutral-700 rounded p-2.5 text-neutral-200 focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none transition-all font-mono text-xs"
+            />
+            <p className="text-[10px] text-neutral-600 mt-1">
+              例如: deepseek-ai/DeepSeek-V3
+            </p>
+          </div>
+
+          {/* 3. API Key 输入 */}
+          <div>
+            <label className="flex items-center gap-2 text-[10px] font-mono text-neutral-500 mb-1 uppercase tracking-wider">
+              <Key size={10} />
+              API Key
+            </label>
+            <input 
+              type="password" 
+              value={inputKey}
+              onChange={(e) => setInputKey(e.target.value)}
+              placeholder="sk-..."
+              className="w-full bg-black/40 border border-neutral-700 rounded p-2.5 text-neutral-200 focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none transition-all font-mono text-xs"
+            />
+          </div>
+
+          {/* 提示信息 */}
+          <div className="p-3 bg-amber-900/10 border border-amber-900/30 rounded flex gap-3 items-start">
+            <AlertTriangle className="text-amber-600 flex-shrink-0 mt-0.5" size={14} />
+            <p className="text-[10px] text-amber-600/80 leading-relaxed">
+              请确保 Base URL 正确（如硅基流动需加 /v1）。Key 仅存储在本地。
+            </p>
+          </div>
+        </div>
+
+        {/* 底部按钮区 - 固定在底部 */}
+        <div className="p-6 pt-2 border-t border-neutral-800 bg-neutral-900 rounded-b-lg">
+            <button 
+            onClick={handleSave}
+            disabled={!inputKey}
+            className="w-full bg-amber-700 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded font-medium transition-colors shadow-lg shadow-amber-900/20 text-sm"
+            >
+            保存并开始
+            </button>
+        </div>
+
       </div>
     </div>
   );

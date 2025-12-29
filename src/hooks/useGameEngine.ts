@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGameStore, GameState } from '@/stores/game';
 import { useUIStore } from '@/stores/ui';
 import { useMetaStore } from '@/stores/meta';
-import { deepseekChat, DeepSeekChatMessage } from '@/api/deepseek';
+import { deepseekChat, DeepSeekChatMessage } from '@/api/custom_url';
 import { NARRATIVE_PROMPT, DATA_ANALYSIS_PROMPT, PRINCIPLE_STYLES, CHAPTER_GUIDES } from '@/constants/prompts';
 import { getItemTemplate } from '@/constants/items';
 import { getAspectEffect } from '@/constants/gameData';
