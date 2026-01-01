@@ -9,6 +9,7 @@ import { DebugPanel } from '@/components/DebugPanel';
 import { StartScreen } from '@/components/StartScreen';
 import { StatusBar } from '@/components/StatusBar';
 import { ChapterOverlay } from '@/components/ChapterOverlay';
+import { NewYearModal } from '@/components/NewYearModal';
 import { useGameStore } from '@/stores/game';
 import { useUIStore } from '@/stores/ui';
 import { useGameEngine } from '@/hooks/useGameEngine';
@@ -95,6 +96,7 @@ function App() {
       <div className="absolute inset-0 bg-neutral-900 opacity-[0.03] pointer-events-none z-0 mix-blend-overlay" />
       <div className="absolute inset-0 bg-radial-gradient from-transparent via-background/50 to-background pointer-events-none z-0" />
       
+      <NewYearModal />
       <ApiKeyModal />
       
       {/* Desktop Left Panel (Status) */}

@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/ui';
 import { Trophy, Book, Map, Settings } from 'lucide-react';
 import { TutorialModal } from '@/components/TutorialModal';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
+import { NewYearModal } from '@/components/NewYearModal';
 import { DebugPanel } from '@/components/DebugPanel';
 import { StarRequestModal } from '@/components/StarRequestModal';
 
@@ -269,6 +270,7 @@ export function StartScreen() {
   const renderIntro = () => {
     return (
     <div className="min-h-screen w-full relative bg-background text-text-primary flex flex-col">
+      <NewYearModal />
       <ApiKeyModal />
       <StarRequestModal />
       <AnimatePresence>
