@@ -9,14 +9,13 @@ import { DebugPanel } from '@/components/DebugPanel';
 import { StartScreen } from '@/components/StartScreen';
 import { StatusBar } from '@/components/StatusBar';
 import { ChapterOverlay } from '@/components/ChapterOverlay';
-import { ChapterEndScreen } from '@/components/ChapterEndScreen';
 import { useGameStore } from '@/stores/game';
 import { useUIStore } from '@/stores/ui';
 import { useGameEngine } from '@/hooks/useGameEngine';
 import { Menu, X } from 'lucide-react';
 
 function App() {
-  const { history, resources, isGameStarted, story } = useGameStore();
+  const { history, resources, isGameStarted } = useGameStore();
   const { apiKey } = useUIStore();
   const { 
     handleAction, 
@@ -75,10 +74,20 @@ function App() {
     return <StartScreen />;
   }
 
-  // Check for Chapter 1 Completion
-  if (story.currentChapter > 1) {
-    return <ChapterEndScreen />;
-  }
+  /* 
+   * [DEV NOTE - STORY EXTENSION INTERFACE]
+   * Previously, we blocked progress after Chapter 1 with:
+   * if (story.currentChapter > 1) { return <ChapterEndScreen />; }
+   * 
+   * This was removed to allow "Infinite Play" (Free Mode) where the AI continues the story indefinitely.
+   * 
+   * To add more SCRIPTED content (Chapter 2+):
+   * 1. Open `src/data/storyEvents.ts`
+   * 2. Create a new event with id: 'chapter_2_start'
+   *    (The last event 'bookshop_dilemma' points to this ID)
+   * 3. The StorySystem will automatically detect this event and trigger it, 
+   *    seamlessly transitioning from AI generation back to scripted plot.
+   */
 
   return (
     <div className="flex h-screen w-full bg-background text-text-primary overflow-hidden relative">
