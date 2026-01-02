@@ -216,30 +216,42 @@ export function StartScreen() {
   };
 
   const FooterContent = () => (
-    <div className="text-xs font-serif tracking-wider px-4 flex flex-col gap-3 w-full max-w-4xl">
+    <div className="text-xs font-serif tracking-wider px-4 flex flex-col gap-3 w-full max-w-5xl">
       {/* Other Projects Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 pointer-events-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 pointer-events-auto">
         <a 
-          href="https://github.com/luyu14039/Hush-House" 
+          href="https://luyu14039.github.io/Hush-House/" 
           target="_blank" 
           rel="noopener noreferrer" 
           className="group flex flex-col items-center md:items-end text-center md:text-right gap-1 p-2 rounded hover:bg-white/5 transition-colors"
         >
           <span className="text-accent-lantern font-bold group-hover:underline decoration-accent-lantern/50 underline-offset-4">Hush House / 噤声书屋</span>
-          <span className="hidden md:block text-[10px] text-text-secondary/80 group-hover:text-text-primary transition-colors">
+          <span className="block text-[10px] text-text-secondary/80 group-hover:text-text-primary transition-colors">
             基于 LLM 的《密教模拟器》与《司辰之书》沉浸式阅读器与知识图谱
           </span>
         </a>
 
         <a 
-          href="https://github.com/luyu14039/Which-hour-will-you-serve" 
+          href="https://luyu14039.github.io/Which-hour-will-you-serve/" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="group flex flex-col items-center text-center gap-1 p-2 rounded hover:bg-white/5 transition-colors"
+        >
+          <span className="text-accent-lantern font-bold group-hover:underline decoration-accent-lantern/50 underline-offset-4">Which Hour Will You Serve?</span>
+          <span className="block text-[10px] text-text-secondary/80 group-hover:text-text-primary transition-colors">
+            寻找命定司辰的沉浸式互动测试，包含 AI 命运书写与密教黄历
+          </span>
+        </a>
+
+        <a 
+          href="https://luyu14039.github.io/tarot-but-hours/" 
           target="_blank" 
           rel="noopener noreferrer" 
           className="group flex flex-col items-center md:items-start text-center md:text-left gap-1 p-2 rounded hover:bg-white/5 transition-colors"
         >
-          <span className="text-accent-lantern font-bold group-hover:underline decoration-accent-lantern/50 underline-offset-4">Which Hour Will You Serve?</span>
-          <span className="hidden md:block text-[10px] text-text-secondary/80 group-hover:text-text-primary transition-colors">
-            寻找命定司辰的沉浸式互动测试，包含 AI 命运书写与密教黄历
+          <span className="text-accent-lantern font-bold group-hover:underline decoration-accent-lantern/50 underline-offset-4">Tarot but Hours / 司辰塔罗</span>
+          <span className="block text-[10px] text-text-secondary/80 group-hover:text-text-primary transition-colors">
+            基于《密教模拟器》司辰体系的在线塔罗牌占卜工具
           </span>
         </a>
       </div>
