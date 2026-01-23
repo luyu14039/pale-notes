@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, AspectState } from '@/stores/game';
 import { useMetaStore } from '@/stores/meta';
@@ -79,7 +79,7 @@ const MAX_POINTS = 9;
 export function StartScreen() {
   const { setAspects, setResources, setOrigin, setStoryState, startGame, addItem, resetGame, story } = useGameStore();
   const { completedOrigins, maxChapterReached, keyEventsWitnessed } = useMetaStore();
-  const { setApiKeyModalOpen, showTutorial, setShowTutorial } = useUIStore();
+  const { setApiKeyModalOpen, showTutorial, setShowTutorial, setAutoFollow } = useUIStore();
   const [step, setStep] = useState<'intro' | 'creation'>('intro');
   const hasSave = story.origin !== null;
   
@@ -215,6 +215,31 @@ export function StartScreen() {
     startGame();
   };
 
+  // Import handlers for StartScreen (load exported JSON and start game)
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
+    setImportError(null);
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const ok = useGameStore.getState().importData(text);
+      if (!ok) {
+        setImportError('文件格式不正确或解析失败');
+        return;
+      }
+      // Start game with imported data
+      startGame();
+    } catch (err) {
+      console.error(err);
+      setImportError('读取文件失败');
+    }
+  };
+
   const FooterContent = () => (
     <div className="text-xs font-serif tracking-wider px-4 flex flex-col gap-3 w-full max-w-5xl">
       {/* Other Projects Links */}
@@ -305,6 +330,19 @@ export function StartScreen() {
       >
         <Settings size={24} />
       </motion.button>
+      {/* Import data button on Start Screen */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+        onClick={handleImportClick}
+        className="fixed top-4 right-16 p-2 text-text-muted hover:text-accent-lantern transition-colors z-20"
+        title="导入游戏存档"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="19"/></svg>
+      </motion.button>
+      <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
+      {importError && <div className="fixed top-16 right-4 text-xs text-accent-grail z-30">{importError}</div>}
 
       <div className="flex-grow w-full flex flex-col items-center p-6 md:p-8 pb-24 md:pb-48 relative z-10">
         <div className="my-auto w-full flex flex-col items-center max-w-4xl">
@@ -369,7 +407,7 @@ export function StartScreen() {
             <motion.button
               whileHover={{ scale: 1.05, letterSpacing: "0.2em" }}
               whileTap={{ scale: 0.95 }}
-              onClick={startGame}
+              onClick={() => { setAutoFollow(true); startGame(); }}
               className="w-64 md:w-auto px-12 py-4 bg-accent-lantern/10 border border-accent-lantern/30 text-accent-lantern font-serif text-xl tracking-widest hover:bg-accent-lantern/20 hover:border-accent-lantern transition-all duration-500 shadow-[0_0_20px_rgba(234,179,8,0.1)] hover:shadow-[0_0_30px_rgba(234,179,8,0.2)]"
             >
               继续旅程

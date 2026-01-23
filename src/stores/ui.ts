@@ -12,6 +12,8 @@ interface UIState {
   toggleTheme: () => void
   statusMessage: string | null
   setStatusMessage: (msg: string | null) => void
+  autoFollow: boolean
+  setAutoFollow: (v: boolean) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -27,10 +29,12 @@ export const useUIStore = create<UIState>()(
       toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       statusMessage: null,
       setStatusMessage: (msg) => set({ statusMessage: msg }),
+      autoFollow: true,
+      setAutoFollow: (v: boolean) => set({ autoFollow: v }),
     }),
     {
       name: 'pale-notes-ui',
-      partialize: (state) => ({ apiKey: state.apiKey, theme: state.theme }), // Don't persist statusMessage
+      partialize: (state) => ({ apiKey: state.apiKey, theme: state.theme, autoFollow: state.autoFollow }), // Don't persist statusMessage
     }
   )
 )

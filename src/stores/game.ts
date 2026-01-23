@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { useUIStore } from '@/stores/ui'
 import { StoryState } from '@/types/story'
 
 export interface AspectState {
@@ -160,6 +161,8 @@ export interface GameState {
   lastStateSnapshot: any | null
   saveSnapshot: () => void
   restoreSnapshot: () => void
+  exportData: () => string
+  importData: (json: string) => boolean
 }
 
 const INITIAL_STATE = {
@@ -224,7 +227,7 @@ const INITIAL_STATE = {
 
 export const useGameStore = create<GameState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...INITIAL_STATE,
       
       setPlayerProfile: (name, gender, appearance) => set({ playerName: name, playerGender: gender, playerAppearance: appearance }),
@@ -296,7 +299,10 @@ export const useGameStore = create<GameState>()(
       addHistory: (msg) => set((state) => ({ history: [...state.history, msg] })),
       updateSummary: (summary) => set({ summary }),
       startGame: () => set({ isGameStarted: true }),
-      resetGame: () => set({ ...INITIAL_STATE }),
+      resetGame: () => {
+        set({ ...INITIAL_STATE });
+        try { useUIStore.setState({ autoFollow: true }); } catch (e) { /* ignore */ }
+      },
       returnToTitle: () => set({ isGameStarted: false }),
       
       setStoryState: (storyUpdate) => set((state) => ({ story: { ...state.story, ...storyUpdate } })),
@@ -366,6 +372,60 @@ export const useGameStore = create<GameState>()(
         };
         return { lastStateSnapshot: JSON.parse(JSON.stringify(snapshot)) };
       }),
+
+      // Export current game data as a JSON string (only data, no functions)
+      exportData: () => {
+        const state = get();
+        const snapshot = {
+          resources: state.resources,
+          aspects: state.aspects,
+          inventory: state.inventory,
+          lores: state.lores,
+          rites: state.rites,
+          languages: state.languages,
+          characters: state.characters,
+          locations: state.locations,
+          unlockedDoors: state.unlockedDoors,
+          stage: state.stage,
+          location: state.location,
+          time: state.time,
+          identity: state.identity,
+          history: state.history,
+          summary: state.summary,
+          tags: state.tags,
+          story: state.story,
+          currentOptions: state.currentOptions,
+          isGameStarted: state.isGameStarted,
+          knownFacts: state.knownFacts,
+          facts: state.facts,
+          readBooks: state.readBooks,
+          masteredLores: state.masteredLores,
+          playerName: state.playerName,
+          playerGender: state.playerGender,
+          playerAppearance: state.playerAppearance,
+          turnsSinceLastMajorEvent: state.turnsSinceLastMajorEvent
+        };
+        return JSON.stringify(snapshot, null, 2);
+      },
+
+      // Import game data from a JSON string. Only keys present in INITIAL_STATE will be applied.
+      importData: (jsonStr: string) => {
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (typeof parsed !== 'object' || parsed === null) return false;
+          const allowedKeys = Object.keys(INITIAL_STATE) as (keyof typeof INITIAL_STATE)[];
+          const patch: any = {};
+          for (const k of allowedKeys) {
+            if (k in parsed) patch[k] = (parsed as any)[k];
+          }
+          // Apply patch to state
+          set(() => patch as any);
+          try { useUIStore.setState({ autoFollow: true }); } catch (e) { /* ignore */ }
+          return true;
+        } catch (e) {
+          return false;
+        }
+      },
 
       restoreSnapshot: () => set((state) => {
         if (!state.lastStateSnapshot) return state;

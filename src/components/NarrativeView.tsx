@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useUIStore } from '@/stores/ui';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,14 +16,18 @@ interface NarrativeViewProps {
 export function NarrativeView({ messages, isTyping, isAnalyzingData, streamingContent, streamingReasoning }: NarrativeViewProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(true);
+  const autoFollow = useUIStore((s) => s.autoFollow);
 
   useEffect(() => {
+    // Auto-scroll only when preference enabled
+    if (!autoFollow) return;
+
     // Use a small timeout to ensure the DOM has updated with the new content
     const timer = setTimeout(() => {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
     return () => clearTimeout(timer);
-  }, [messages, isTyping, streamingContent, streamingReasoning]);
+  }, [messages, isTyping, streamingContent, streamingReasoning, autoFollow]);
 
   return (
     <div className="h-full overflow-y-auto p-4 md:p-12 space-y-6 md:space-y-8 font-serif leading-loose text-base md:text-lg scroll-smooth bg-[url('/images/texture-paper.png')] bg-repeat">

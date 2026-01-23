@@ -1,6 +1,6 @@
 import { useGameStore, AspectState } from '@/stores/game';
 import { useUIStore } from '@/stores/ui';
-import { Heart, Brain, Coins, LogOut, Settings } from 'lucide-react';
+import { Heart, Brain, Coins, LogOut, Settings, ChevronsDown, Slash } from 'lucide-react';
 
 const aspectImages: Record<keyof AspectState, string> = {
   lantern: 'images/icons/lantern.png',
@@ -30,7 +30,7 @@ interface StatusPanelProps {
 
 export function StatusPanel({ className = '' }: StatusPanelProps) {
   const { resources, aspects, returnToTitle } = useGameStore();
-  const { setApiKeyModalOpen } = useUIStore();
+  const { setApiKeyModalOpen, autoFollow, setAutoFollow } = useUIStore();
 
   return (
     <div className={`h-full p-4 space-y-6 overflow-y-auto bg-surface/30 border-r border-text-muted/20 backdrop-blur-sm flex flex-col ${className}`}>
@@ -97,6 +97,92 @@ export function StatusPanel({ className = '' }: StatusPanelProps) {
           <Settings size={14} />
           <span>设置</span>
         </button>
+
+        <button
+          onClick={() => setAutoFollow(!autoFollow)}
+          aria-pressed={autoFollow}
+          title={autoFollow ? '自动滚动：已开启' : '自动滚动：已关闭'}
+          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-text-muted hover:text-accent-lantern hover:bg-accent-lantern/10 border border-transparent hover:border-accent-lantern/30 rounded transition-all"
+        >
+          {autoFollow ? <ChevronsDown size={16} /> : <Slash size={16} />}
+          <span>自动滚动</span>
+        </button>
+
+        <button 
+          onClick={() => {
+            try {
+              const json = useGameStore.getState().exportData();
+              const blob = new Blob([json], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'pale-notes-export.json';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch (e) {
+              console.error(e);
+              alert('导出失败');
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-text-muted hover:text-accent-lantern hover:bg-accent-lantern/10 border border-transparent hover:border-accent-lantern/30 rounded transition-all"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+          <span>导出数据</span>
+        </button>
+
+        <button
+          onClick={() => {
+            try {
+              const state = useGameStore.getState();
+              const assistantMsgs = (state.history || []).filter(m => m.role === 'assistant').map(m => ({ content: m.content.trim(), ts: m.timestamp }));
+
+              // Build per-round blocks with metadata headers and separators
+              const parts: string[] = [];
+              if (assistantMsgs.length > 0) {
+                assistantMsgs.forEach((m, idx) => {
+                  const round = idx + 1;
+                  const genTime = m.ts ? new Date(m.ts) : null;
+                  const genTimeStr = genTime ? genTime.toLocaleString() : '未知';
+
+                  parts.push('------------------------------');
+                  parts.push(`回合 ${round}`);
+                  parts.push(`生成时间: ${genTimeStr}`);
+                  parts.push('');
+                  parts.push(m.content || '');
+                  parts.push('');
+                });
+              } else if (state.summary && state.summary.trim().length > 0) {
+                parts.push('------------------------------');
+                parts.push('汇总');
+                parts.push('');
+                parts.push(state.summary.trim());
+              } else {
+                parts.push('（未找到已生成的叙事文本）');
+              }
+
+              const text = parts.join('\n');
+              const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'pale-notes-ai-text.txt';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch (e) {
+              console.error(e);
+              alert('导出文本失败');
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 p-2 text-sm text-text-muted hover:text-accent-lantern hover:bg-accent-lantern/10 border border-transparent hover:border-accent-lantern/30 rounded transition-all"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+          <span>导出文本</span>
+        </button>
+
         <button 
           onClick={returnToTitle}
           className="w-full flex items-center justify-center gap-2 p-2 text-sm text-text-muted hover:text-accent-lantern hover:bg-accent-lantern/10 border border-transparent hover:border-accent-lantern/30 rounded transition-all"
