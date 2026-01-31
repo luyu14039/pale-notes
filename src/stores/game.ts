@@ -212,6 +212,7 @@ const INITIAL_STATE = {
   lastStateSnapshot: null,
   story: {
     currentChapter: 0,
+    chapterTitle: null,
     completedEvents: [],
     activeEventId: null,
     flags: {},

@@ -32,6 +32,7 @@ export interface StoryEvent {
 
 export interface StoryState {
   currentChapter: number;
+  chapterTitle: string | null;
   completedEvents: string[];
   activeEventId: string | null;
   flags: Record<string, boolean>;

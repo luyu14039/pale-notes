@@ -15,7 +15,8 @@ export function ChapterOverlay() {
   const [currentTitle, setCurrentTitle] = useState("");
 
   useEffect(() => {
-    const title = CHAPTER_TITLES[story.currentChapter] || `第 ${story.currentChapter} 章`;
+    // Prefer an AI-provided chapter title stored on the story state, fallback to constants
+    const title = (story as any).chapterTitle || CHAPTER_TITLES[story.currentChapter] || `第 ${story.currentChapter} 章`;
     setCurrentTitle(title);
     setIsVisible(true);
 
@@ -24,7 +25,7 @@ export function ChapterOverlay() {
     }, 4000); // Show for 4 seconds
 
     return () => clearTimeout(timer);
-  }, [story.currentChapter]);
+  }, [story.currentChapter, (story as any).chapterTitle]);
 
   return (
     <AnimatePresence>

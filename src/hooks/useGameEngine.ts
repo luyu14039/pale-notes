@@ -342,7 +342,8 @@ export function useGameEngine(): GameEngineReturn {
         case 'SET_CHAPTER':
           const oldChapter = useGameStore.getState().story.currentChapter;
           const newChapter = change.value;
-          setStoryState({ currentChapter: newChapter });
+          // Store both the numeric chapter and the AI-provided title (if present)
+          setStoryState({ currentChapter: newChapter, chapterTitle: change.title});
           
           // Meta Updates
           useMetaStore.getState().updateMaxChapter(newChapter);
@@ -357,7 +358,9 @@ export function useGameEngine(): GameEngineReturn {
           }
 
           useGameStore.getState().resetTurnCounter();
-          summaryLines.push(`章节进度更新`);
+          // console.log('[DEBUG] currentTurns:', useGameStore.getState().turnsSinceLastMajorEvent);
+
+          summaryLines.push(`章节进度更新: ${change.title || newChapter}`);
           break;
         case 'MODIFY_TIME':
           if (change.value) advanceTime(change.value);
