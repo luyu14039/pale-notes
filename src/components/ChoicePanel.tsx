@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useUIStore } from '@/stores/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -33,6 +34,8 @@ const styleMap = {
 export function ChoicePanel({ options, onSelect, onCustomAction, disabled, isInputAllowed = true }: ChoicePanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [customInput, setCustomInput] = useState('');
+  const pendingActionText = useUIStore(state => state.pendingActionText);
+  const setPendingActionText = useUIStore(state => state.setPendingActionText);
 
   // Auto-expand when options change
   useEffect(() => {
@@ -41,11 +44,20 @@ export function ChoicePanel({ options, onSelect, onCustomAction, disabled, isInp
     }
   }, [options]);
 
+  // Prefill custom input when pendingActionText is set (e.g., after retry)
+  useEffect(() => {
+    if (pendingActionText && pendingActionText.length > 0) {
+      setCustomInput(pendingActionText);
+    }
+  }, [pendingActionText]);
+
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (customInput.trim() && onCustomAction && !disabled && isInputAllowed) {
       onCustomAction(customInput.trim());
       setCustomInput('');
+      // Clear the pending text so it doesn't reappear after submit
+      try { setPendingActionText(''); } catch (e) { /* ignore */ }
     }
   };
 

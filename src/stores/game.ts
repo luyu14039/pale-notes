@@ -305,12 +305,17 @@ export const useGameStore = create<GameState>()(
       },
       returnToTitle: () => set({ isGameStarted: false }),
       
-      setStoryState: (storyUpdate) => set((state) => ({ story: { ...state.story, ...storyUpdate } })),
+      setStoryState: (storyUpdate) => set((state) => ({
+        story: {
+          ...state.story,
+          ...storyUpdate
+        }
+      })),
       completeEvent: (eventId) => set((state) => ({ 
         story: { 
           ...state.story, 
-          completedEvents: [...state.story.completedEvents, eventId],
-          activeEventId: null
+          completedEvents: [...state.story.completedEvents, eventId]
+          // activeEventId: null
         } 
       })),
       setOrigin: (origin) => set((state) => ({ story: { ...state.story, origin } })),

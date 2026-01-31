@@ -14,6 +14,9 @@ interface UIState {
   setStatusMessage: (msg: string | null) => void
   autoFollow: boolean
   setAutoFollow: (v: boolean) => void
+  // Prefill for custom action input (used by retry to repopulate textbox)
+  pendingActionText: string
+  setPendingActionText: (text: string) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -31,6 +34,8 @@ export const useUIStore = create<UIState>()(
       setStatusMessage: (msg) => set({ statusMessage: msg }),
       autoFollow: true,
       setAutoFollow: (v: boolean) => set({ autoFollow: v }),
+      pendingActionText: '',
+      setPendingActionText: (text: string) => set({ pendingActionText: text }),
     }),
     {
       name: 'pale-notes-ui',

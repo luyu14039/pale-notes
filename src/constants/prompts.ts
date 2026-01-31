@@ -311,6 +311,7 @@ export const DATA_ANALYSIS_PROMPT = `
     { "type": "USE_LORE", "target": "string" },
     { "type": "USE_ITEM", "target": "string" },
     { "type": "MODIFY_ASPECT", "target": "lantern" | "forge" | "edge" | "winter" | "heart" | "grail" | "moth" | "knock", "value": number },
+    { "type": "SET_CHAPTER", "value": number },
     { "type": "MODIFY_TIME", "value": number },
     { "type": "SET_IDENTITY", "target": "string" },
     { "type": "COMPLETE_EVENT", "target": "string" },

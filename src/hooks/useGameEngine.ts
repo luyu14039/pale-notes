@@ -356,6 +356,7 @@ export function useGameEngine(): GameEngineReturn {
              }
           }
 
+          useGameStore.getState().resetTurnCounter();
           summaryLines.push(`章节进度更新`);
           break;
         case 'MODIFY_TIME':
@@ -370,12 +371,15 @@ export function useGameEngine(): GameEngineReturn {
           useGameStore.getState().completeEvent(change.target);
           // Also clear active event if it matches
           if (useGameStore.getState().story.activeEventId === change.target) {
+            // console.log("[DEBUG] Not to clear active event:", change.target);
              setStoryState({ activeEventId: null });
+             console.log("[DEBUG] updated activeEventId:", useGameStore.getState().story.activeEventId);
           }
           summaryLines.push(`事件完成: ${change.target}`);
           break;
         case 'TRIGGER_EVENT':
            setStoryState({ activeEventId: change.target });
+           console.log("[DEBUG] updated activeEventId:", useGameStore.getState().story.activeEventId);
            useMetaStore.getState().addKeyEvent(change.target);
            summaryLines.push(`触发事件: ${change.target}`);
            break;
@@ -385,12 +389,14 @@ export function useGameEngine(): GameEngineReturn {
     // Turn Counter Logic
     // We need to access the current options from the store to check if it was a critical node
     const currentOptions = useGameStore.getState().currentOptions;
+    console.log("[DEBUG] currentOptions:", currentOptions);
     
     if (currentOptions && currentOptions.length === 1) {
        useGameStore.getState().resetTurnCounter();
     } else {
        useGameStore.getState().incrementTurnCounter();
     }
+    console.log('[DEBUG] currentTurns:', useGameStore.getState().turnsSinceLastMajorEvent);
 
     if (summaryLines.length > 0) {
       addHistory({
@@ -471,15 +477,20 @@ export function useGameEngine(): GameEngineReturn {
       // Check if we are already in an active event
       if (currentStore.story.activeEventId) {
         activeEvent = storySystem.getEvent(currentStore.story.activeEventId);
+        // console.log("[DEBUG] activeEventId (getEvent):", activeEvent?.id);
       } 
       
       // If not, check if any new event is triggered
       if (!activeEvent) {
         activeEvent = storySystem.findTriggeredEvent(currentStore);
+        // console.log("[DEBUG] activeEventId (findTriggeredEvent):", activeEvent?.id);
+
         if (activeEvent) {
           console.log("Triggered Event:", activeEvent.id);
+
           // Set active event in store
-          currentStore.setStoryState({ activeEventId: activeEvent.id });
+          useGameStore.getState().setStoryState({ activeEventId: activeEvent.id });
+          console.log("[DEBUG] updated activeEventId:", useGameStore.getState().story.activeEventId);
           
           // Meta Update: Record Key Event
           useMetaStore.getState().addKeyEvent(activeEvent.id);
@@ -501,6 +512,7 @@ export function useGameEngine(): GameEngineReturn {
         
         // Check urgency
         const currentTurns = useGameStore.getState().turnsSinceLastMajorEvent;
+        // console.log('[DEBUG] currentTurns for urgency instruction:', currentTurns);
         if (currentTurns >= 4) {
            currentStoryContext += `\n[URGENCY INSTRUCTION]: The player has lingered in this scene for too long (${currentTurns} turns). The narrative MUST now strongly hint at the urgency of the situation or the inevitability of the key event. Do not allow further delay.`;
         }
@@ -512,6 +524,10 @@ export function useGameEngine(): GameEngineReturn {
             text: opt.text,
             style: 'neutral'
           }));
+          console.log('[DEBUG] pendingKeyOptions:', pendingKeyOptions);
+
+          // currentGoalOptions = pendingKeyOptions;  // Hybrid Mode
+          // currentRequiredOptions = pendingKeyOptions;  // Strict Mode
         }
       } else {
         // If NO active event, inject completed events context to prevent repetition
@@ -530,6 +546,9 @@ export function useGameEngine(): GameEngineReturn {
       
       console.log("--- [Narrative AI Input] ---");
       console.log(context);
+
+      // console.log('[DEBUG] currentRequiredOptions:', currentRequiredOptions);
+      // console.log('[DEBUG] currentGoalOptions:', currentGoalOptions);
 
       const systemMessage: DeepSeekChatMessage = { role: 'system', content: NARRATIVE_PROMPT };
       const summaryMessage: DeepSeekChatMessage | null = updatedStore.summary ? { role: 'system', content: `[Previous Story Summary]: ${updatedStore.summary}` } : null;
@@ -586,8 +605,8 @@ export function useGameEngine(): GameEngineReturn {
         }
       }
       
-      console.log("--- [Narrative AI Output] ---");
-      console.log(fullNarrative);
+      // console.log("--- [Narrative AI Output] ---");
+      // console.log(fullNarrative);
 
       // Add narrative to history
       updatedStore.addHistory({ role: 'assistant', content: fullNarrative, timestamp: Date.now() });
@@ -627,8 +646,8 @@ export function useGameEngine(): GameEngineReturn {
 
       // @ts-ignore
       const dataContent = dataResponse.choices[0].message.content;
-      console.log("--- [Data AI Output] ---");
-      console.log(dataContent);
+      // console.log("--- [Data AI Output] ---");
+      // console.log(dataContent);
       setDebugDataOutput(dataContent);
 
       try {
@@ -637,7 +656,8 @@ export function useGameEngine(): GameEngineReturn {
         // Inject Key Options if conditions met
         if (pendingKeyOptions.length > 0) {
            const currentTurns = useGameStore.getState().turnsSinceLastMajorEvent;
-           
+          //  console.log('[DEBUG] currentTurns for injecting key options:', currentTurns);
+
            // Force Mode: If turns >= 5, ONLY show key options
            if (currentTurns >= 5) {
               parsedData.options = pendingKeyOptions;
@@ -652,6 +672,7 @@ export function useGameEngine(): GameEngineReturn {
 
         handleStateChanges(parsedData.stateChanges);
         store.setCurrentOptions(parsedData.options || []);
+        console.log('[DEBUG] parsedData.options:', parsedData.options);
       } catch (e) {
         console.error("Failed to parse Data AI response", e);
         setLastError("Failed to parse game state updates.");
@@ -675,12 +696,18 @@ export function useGameEngine(): GameEngineReturn {
     // Save snapshot before any changes
     currentStore.saveSnapshot();
     useUIStore.getState().setStatusMessage("Processing action...");
+    console.log("Processing action:", actionId);
+    console.log("[DEBUG] activeEventId:", currentStore.story.activeEventId);
     
     // Check if we are in an active event and the user selected an event option
     if (currentStore.story.activeEventId) {
       const event = storySystem.getEvent(currentStore.story.activeEventId);
+      // console.log("[DEBUG] event:", event);
+
       if (event && event.options) {
         const selectedOption = event.options.find(o => o.id === actionId);
+        // console.log("[DEBUG] selectedOption:", selectedOption);
+
         if (selectedOption) {
           console.log("Selected Event Option:", selectedOption.id);
           
@@ -731,21 +758,26 @@ export function useGameEngine(): GameEngineReturn {
     
     // Restore state from snapshot (this reverts history, items, aspects, etc.)
     if (currentStore.lastStateSnapshot) {
-        console.log("Restoring snapshot for retry...");
-        currentStore.restoreSnapshot();
-    } else {
-        console.warn("No snapshot available for retry. Falling back to simple history pop.");
-        // Fallback: Remove the last history entry if it's an assistant message
-        const newHistory = [...currentStore.history];
-        if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'assistant') {
-            // We can't easily revert state changes without a snapshot system.
-            // But since we just added snapshot support, this fallback is just for legacy/edge cases.
+      console.log("Restoring snapshot for retry...");
+      currentStore.restoreSnapshot();
+
+      // After restoring snapshot we want to let the player re-select or edit their action.
+      // Do NOT automatically re-run the previous action. Instead, keep `lastAction` so UI
+      // can prefill input or highlight the previously-chosen option.
+        // Prefill the custom input textbox if this was a custom action
+        if (lastAction && lastAction.id === 'custom_action') {
+          useUIStore.getState().setPendingActionText(lastAction.text);
         }
+        useUIStore.getState().setStatusMessage("Restored previous choices. You may reselect or edit your action.");
+      return;
     }
-    
+
+    console.warn("No snapshot available for retry. Falling back to regenerating immediately.");
+    // Prefill custom input if applicable, then re-run as fallback
+    if (lastAction && lastAction.id === 'custom_action') {
+      useUIStore.getState().setPendingActionText(lastAction.text);
+    }
     useUIStore.getState().setStatusMessage("Regenerating...");
-    // We call handleAction again to ensure all side effects (aspect updates, event logic) are re-applied correctly
-    // after the state rollback.
     return handleAction(lastAction.id, lastAction.text);
   };
 
