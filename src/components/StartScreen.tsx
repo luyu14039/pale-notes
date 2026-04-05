@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGameStore, AspectState } from '@/stores/game';
+import { useGameStore, AspectState, Character } from '@/stores/game';
 import { useMetaStore } from '@/stores/meta';
 import { useUIStore } from '@/stores/ui';
 import { Trophy, Book, Map, Settings } from 'lucide-react';
@@ -76,12 +76,38 @@ const generateName = (gender: string) => {
 
 const MAX_POINTS = 9;
 
+interface InitialCharacterDraft {
+  id: string;
+  name: string;
+  description: string;
+  relationship: string;
+}
+
+const createInitialCharacterDraft = (): InitialCharacterDraft => ({
+  id: `char_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  name: '',
+  description: '',
+  relationship: ''
+});
+
+const normalizeCharacterId = (name: string, fallbackId: string): string => {
+  const normalized = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 32);
+  return normalized || fallbackId;
+};
+
 export function StartScreen() {
-  const { setAspects, setResources, setOrigin, setStoryState, startGame, addItem, resetGame, story } = useGameStore();
+  const { setAspects, setResources, setOrigin, setStoryState, startGame, addItem, addCharacter, resetGame, story } = useGameStore();
   const { completedOrigins, maxChapterReached, keyEventsWitnessed } = useMetaStore();
   const { setApiKeyModalOpen, showTutorial, setShowTutorial, setAutoFollow } = useUIStore();
   const [step, setStep] = useState<'intro' | 'creation'>('intro');
   const hasSave = story.origin !== null;
+  const leftColumnRef = useRef<HTMLDivElement | null>(null);
+  const [leftColumnHeight, setLeftColumnHeight] = useState<number | null>(null);
   
   useEffect(() => {
     const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
@@ -108,17 +134,38 @@ export function StartScreen() {
     name: string;
     gender: string;
     appearance: string;
+    description: string;
   }>({
     origin: 'rich',
     childhood: 'bookworm',
     uniqueTrait: 'dreamer',
     name: generateName('其他'),
     gender: '其他',
-    appearance: '迷雾中的身影。'
+    appearance: '迷雾中的身影。',
+    description: ''
   });
+  const [initialCharacters, setInitialCharacters] = useState<InitialCharacterDraft[]>([]);
+
+  useEffect(() => {
+    const element = leftColumnRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+
+    const updateHeight = () => {
+      setLeftColumnHeight(Math.ceil(element.getBoundingClientRect().height));
+    };
+
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [selection, allocations, initialCharacters, step]);
 
   const totalPointsUsed = Object.values(allocations).reduce((a, b) => a + b, 0);
   const remainingPoints = MAX_POINTS - totalPointsUsed;
+  const hasInvalidInitialCharacters = initialCharacters.some(char =>
+    !char.name.trim() || !char.description.trim() || !char.relationship.trim()
+  );
 
   // Calculate Final Stats
   const finalStats = useMemo(() => {
@@ -182,12 +229,24 @@ export function StartScreen() {
     }
   };
 
+  const handleAddInitialCharacter = () => {
+    setInitialCharacters(prev => [...prev, createInitialCharacterDraft()]);
+  };
+
+  const handleRemoveInitialCharacter = (id: string) => {
+    setInitialCharacters(prev => prev.filter(char => char.id !== id));
+  };
+
+  const handleInitialCharacterChange = (id: string, field: keyof InitialCharacterDraft, value: string) => {
+    setInitialCharacters(prev => prev.map(char => char.id === id ? { ...char, [field]: value } : char));
+  };
+
   const handleStart = () => {
     // Reset previous game state before applying new configuration
     resetGame();
     
     // Set Player Profile
-    useGameStore.getState().setPlayerProfile(selection.name, selection.gender as any, selection.appearance);
+    useGameStore.getState().setPlayerProfile(selection.name, selection.gender as any, selection.appearance, selection.description);
 
     setAspects(finalStats.aspects);
     setResources({ 
@@ -211,6 +270,27 @@ export function StartScreen() {
     }
 
     addItem({ id: 'journal', name: '陈旧的笔记', description: '记录着你最初的疑问与疯狂。', tags: ['tool', 'record'] });
+
+    const sanitizedInitialCharacters: Character[] = initialCharacters.reduce<Character[]>((acc, char, index) => {
+      const name = char.name.trim();
+      const description = char.description.trim();
+      const relationship = char.relationship.trim();
+      if (!name || !description || !relationship) {
+        return acc;
+      }
+
+      acc.push({
+        id: normalizeCharacterId(name, `initial_char_${index + 1}`),
+        name,
+        description,
+        relationship,
+        status: '',
+        location: undefined
+      });
+      return acc;
+    }, []);
+
+    sanitizedInitialCharacters.forEach(char => addCharacter(char));
     
     startGame();
   };
@@ -466,7 +546,7 @@ export function StartScreen() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 my-8 pb-12"
+        className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 my-8 pb-12 lg:items-stretch"
       >
         {/* Header */}
         <div className="lg:col-span-12 text-center space-y-2 mb-4">
@@ -475,7 +555,8 @@ export function StartScreen() {
         </div>
 
         {/* Left Column: Narrative Choices */}
-        <div className="lg:col-span-3 space-y-6">
+        <div ref={leftColumnRef} className="lg:col-span-3 flex flex-col gap-6 min-h-0">
+          <div className="flex flex-col gap-6 flex-1 min-h-0">
           {/* Character Profile Section */}
           <div className="bg-surface/10 p-6 rounded-sm border border-accent-lantern/20">
             <h3 className="text-xl font-bold text-accent-lantern mb-4 border-b border-accent-lantern/20 pb-2">人物设定</h3>
@@ -515,6 +596,15 @@ export function StartScreen() {
                   onChange={(e) => setSelection(s => ({ ...s, appearance: e.target.value }))}
                   className="w-full bg-black/30 border border-accent-lantern/30 rounded p-2 text-text-primary focus:border-accent-lantern outline-none text-xs h-20 resize-none"
                   placeholder="描述你的角色..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-text-secondary mb-1">描述</label>
+                <textarea
+                  value={selection.description}
+                  onChange={(e) => setSelection(s => ({ ...s, description: e.target.value }))}
+                  className="w-full bg-black/30 border border-accent-lantern/30 rounded p-2 text-text-primary focus:border-accent-lantern outline-none text-xs h-20 resize-none"
+                  placeholder="补充人物背景、性格..."
                 />
               </div>
             </div>
@@ -579,11 +669,16 @@ export function StartScreen() {
               ))}
             </div>
           </div>
+
+          </div>
         </div>
 
         {/* Middle Column: Aspect Allocation */}
-        <div className="lg:col-span-6 space-y-6">
-          <div className="bg-black/40 p-8 rounded-sm border border-accent-lantern/30 backdrop-blur-sm h-full">
+        <div
+          className="lg:col-span-6 flex flex-col gap-6 min-h-0"
+          style={leftColumnHeight ? { height: `${leftColumnHeight}px` } : undefined}
+        >
+          <div className="bg-black/40 p-8 rounded-sm border border-accent-lantern/30 backdrop-blur-sm">
             <div className="flex justify-between items-end mb-8 border-b border-accent-lantern/30 pb-4">
               <h2 className="text-2xl font-bold text-text-primary">性相调律</h2>
               <div className="text-right">
@@ -633,11 +728,78 @@ export function StartScreen() {
               * 性相将影响你的初始属性：心/刃/铸 → 健康，灯/冬/启 → 理智，杯/蛾 → 资金
             </div>
           </div>
+
+          <div className="bg-surface/10 p-6 rounded-sm border border-accent-lantern/20 flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between mb-4 border-b border-accent-lantern/20 pb-2">
+              <h3 className="text-xl font-bold text-accent-lantern">人物关系</h3>
+              <button
+                type="button"
+                onClick={handleAddInitialCharacter}
+                className="px-2 py-1 text-xs border border-accent-lantern/40 text-accent-lantern rounded hover:bg-accent-lantern/10 transition-colors"
+              >
+                + 新增人物
+              </button>
+            </div>
+            <p className="text-xs text-text-secondary mb-3">
+              初始仅需填写姓名、描述与关系。状态与地点由后续剧情互动动态更新。
+            </p>
+
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              {initialCharacters.length === 0 ? (
+                <div className="flex-1 min-h-0 flex items-center justify-center text-xs text-text-muted italic text-center px-4">
+                  尚未添加人物。可点击“新增人物”预设关系网络。
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 space-y-4 pr-1 overflow-y-auto overscroll-contain">
+                  {initialCharacters.map((char, index) => (
+                    <div key={char.id} className="p-3 rounded border border-text-muted/20 bg-black/20 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-text-secondary">人物 {index + 1}</div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveInitialCharacter(char.id)}
+                          className="text-xs text-red-300 hover:text-red-200"
+                        >
+                          删除
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={char.name}
+                        onChange={(e) => handleInitialCharacterChange(char.id, 'name', e.target.value)}
+                        placeholder="姓名（必填）"
+                        required
+                        className="w-full bg-black/30 border border-accent-lantern/30 rounded p-2 text-sm text-text-primary focus:border-accent-lantern outline-none"
+                      />
+                      <textarea
+                        value={char.description}
+                        onChange={(e) => handleInitialCharacterChange(char.id, 'description', e.target.value)}
+                        placeholder="人物描述（必填）"
+                        required
+                        className="w-full bg-black/30 border border-accent-lantern/30 rounded p-2 text-xs text-text-primary focus:border-accent-lantern outline-none h-16 resize-none"
+                      />
+                      <input
+                        type="text"
+                        value={char.relationship}
+                        onChange={(e) => handleInitialCharacterChange(char.id, 'relationship', e.target.value)}
+                        placeholder="关系（必填，如 Ally/Superior）"
+                        required
+                        className="w-full bg-black/30 border border-accent-lantern/30 rounded p-2 text-xs text-text-primary focus:border-accent-lantern outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Stats Preview & Start */}
-        <div className="lg:col-span-3 flex flex-col gap-6">
-          <div className="bg-surface/10 p-6 rounded-sm border border-accent-lantern/20 flex-1">
+        <div
+          className="lg:col-span-3 flex flex-col gap-6 min-h-0"
+          style={leftColumnHeight ? { height: `${leftColumnHeight}px` } : undefined}
+        >
+          <div className="bg-surface/10 p-6 rounded-sm border border-accent-lantern/20 flex-1 min-h-0 overflow-hidden">
             <h3 className="text-xl font-bold text-accent-lantern mb-6 border-b border-accent-lantern/20 pb-2">属性预览</h3>
             
             <div className="space-y-6">
@@ -685,16 +847,21 @@ export function StartScreen() {
 
           <button
             onClick={handleStart}
-            disabled={remainingPoints < 0}
+            disabled={remainingPoints < 0 || hasInvalidInitialCharacters}
             className={`
               w-full py-6 rounded-sm text-xl font-bold tracking-widest uppercase transition-all shadow-lg
-              ${remainingPoints >= 0 
+              ${remainingPoints >= 0 && !hasInvalidInitialCharacters
                 ? 'bg-accent-lantern text-black hover:bg-accent-lantern/90 hover:shadow-accent-lantern/20' 
                 : 'bg-surface/20 text-text-secondary cursor-not-allowed'}
             `}
           >
             开始旅程
           </button>
+          {hasInvalidInitialCharacters && (
+            <p className="text-xs text-red-300 text-center">
+              已添加的人物中存在未完成项：姓名、描述、关系为必填。
+            </p>
+          )}
         </div>
       </motion.div>
     </div>

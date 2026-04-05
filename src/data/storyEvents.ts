@@ -2,12 +2,42 @@ import { StoryEvent } from '@/types/story';
 
 export const STORY_EVENTS: StoryEvent[] = [
   {
+    id: 'prologue_selector',
+    title: '序章',
+    text: `[SCENE SETUP]
+背景：1920年代伦敦，乔治五世在位时期，“咆哮的二十年代”。
+
+[ATMOSPHERE]
+未知，一切的开端。世界如同未翻开的塔罗牌，沉默地等待着第一道裂隙。`,
+    isStatic: true,
+    triggers: [
+      { type: 'chapter_start', chapterId: 0 }
+    ],
+    options: [
+      {
+        id: 'choose_prologue_rich',
+        text: '你收到家族来信，回到庄园参加晚宴。',
+        nextEventId: 'prologue_rich'
+      },
+      {
+        id: 'choose_prologue_doctor',
+        text: '泰晤士河警署送来一具浮尸，你不得不在停尸房加班。',
+        nextEventId: 'prologue_doctor'
+      },
+      {
+        id: 'choose_prologue_detective',
+        text: '白教堂区又发现一具被剥去脸皮的尸体，你被借调追踪连环杀手。',
+        nextEventId: 'prologue_detective'
+      }
+    ]
+  },
+  {
     id: 'prologue_rich',
     title: '序章：家族的余烬',
     text: `[SCENE SETUP]
-地点：家族庄园的豪华宴会厅。
-时间：1900年代初的某个深夜。
-人物：你（家族继承人），家族长辈们。
+地点：家族庄园的宴会厅，位于肯辛顿的某条僻静街道尽头。
+时间：接近子夜，壁炉里的火焰已燃尽成苍白的灰烬。
+人物：你（家族远亲），家族长辈，身穿黑色礼服。
 
 [KEY ACTIONS]
 1. 描述宴会的奢华，但气氛压抑。
@@ -19,10 +49,7 @@ export const STORY_EVENTS: StoryEvent[] = [
 [ATMOSPHERE]
 疯狂、毁灭、不可理解的恐怖。`,
     isStatic: true,
-    triggers: [
-      { type: 'chapter_start', chapterId: 0 },
-      { type: 'origin_is', origin: 'rich' }
-    ],
+    triggers: [],
     options: [
       {
         id: 'rich_survive',
@@ -35,24 +62,21 @@ export const STORY_EVENTS: StoryEvent[] = [
     id: 'prologue_doctor',
     title: '序章：跳动的真菌',
     text: `[SCENE SETUP]
-地点：伦敦医院的地下停尸房。
-时间：深夜。
-人物：你（理性医师），一具无名尸体。
+地点：圣玛丽医院的地下停尸房。
+时间：凌晨两点，值班室的咖啡已经凉透。
+人物：你（病理科医师），一具身份不明的尸体，带着异常的防腐状态。
 
 [KEY ACTIONS]
 1. 你正在进行解剖，试图查明死因。
 2. 切开腹腔后，发现没有内脏，只有充满了胸腹腔的发光真菌。
 3. 真菌在有节奏地搏动，仿佛在呼吸。
-4. 尸体突然睁开眼睛（或者只是坐起），撞破墙壁逃入夜色。
+4. 尸体突然睁开眼睛（或者只是坐起），真菌在其中跳动，然后失去活性。
 5. 你手里拿着沾满发光粘液的手术刀，呆立在原地。
 
 [ATMOSPHERE]
-临床的冷漠被打破，理性的崩塌，生理性厌恶。`,
+医学理性的崩塌，生命形式的亵渎，求知的渴望与恐惧。`,
     isStatic: true,
-    triggers: [
-      { type: 'chapter_start', chapterId: 0 },
-      { type: 'origin_is', origin: 'doctor' }
-    ],
+    triggers: [],
     options: [
       {
         id: 'doctor_witness',
@@ -65,9 +89,9 @@ export const STORY_EVENTS: StoryEvent[] = [
     id: 'prologue_detective',
     title: '序章：无面人的塔罗牌',
     text: `[SCENE SETUP]
-地点：白教堂区的下水道深处。
-时间：追捕连环杀手的雨夜。
-人物：你（警探），连环杀手（无面人）。
+地点：白教堂区下水道的深处，墙壁上覆盖着黑色苔藓，水滴声一遍遍重复。
+时间：雨夜，晚上十点四十七分。
+人物：你（伦敦警察厅警探），被称为“无面人”的连环杀手。
 
 [KEY ACTIONS]
 1. 你终于在死胡同里堵住了那个连环杀手。
@@ -77,12 +101,9 @@ export const STORY_EVENTS: StoryEvent[] = [
 5. 你捡起塔罗牌，感到一种被窥视的寒意。
 
 [ATMOSPHERE]
-紧张、肮脏、超现实的恐惧。`,
+雨夜追逐的紧迫，肮脏的下水道，超现实的恐惧。`,
     isStatic: true,
-    triggers: [
-      { type: 'chapter_start', chapterId: 0 },
-      { type: 'origin_is', origin: 'detective' }
-    ],
+    triggers: [],
     options: [
       {
         id: 'detective_pursue',

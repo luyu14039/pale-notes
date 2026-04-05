@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useGameStore, GameState } from '@/stores/game';
 import { useUIStore } from '@/stores/ui';
 import { useMetaStore } from '@/stores/meta';
-import { deepseekChat, DeepSeekChatMessage } from '@/api/deepseek';
+import { deepseekChat } from '@/api/deepseek';
+import { siliconflowChat } from '@/api/siliconflow';
+import type { ChatMessage } from '@/api/siliconflow';
 import { NARRATIVE_PROMPT, DATA_ANALYSIS_PROMPT, PRINCIPLE_STYLES, CHAPTER_GUIDES } from '@/constants/prompts';
 import { getItemTemplate } from '@/constants/items';
 import { getAspectEffect } from '@/constants/gameData';
@@ -29,6 +31,8 @@ export function useGameEngine(): GameEngineReturn {
   
   // Use API Key from UI Store
   const apiKey = useUIStore(state => state.apiKey);
+  const provider = useUIStore(state => state.provider);
+  const siliconflowModel = useUIStore(state => state.siliconflowModel);
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAnalyzingData, setIsAnalyzingData] = useState(false);
@@ -73,9 +77,26 @@ export function useGameEngine(): GameEngineReturn {
     return `chapter_${chapterNum}`;
   };
 
+  const requestChat = async ({ messages, stream }: { messages: ChatMessage[]; stream: boolean }) => {
+    if (provider === 'siliconflow') {
+      return siliconflowChat({
+        messages,
+        apiKey,
+        stream,
+        model: siliconflowModel,
+      });
+    }
+
+    return deepseekChat({
+      messages,
+      apiKey,
+      stream,
+    });
+  };
+
   // Helper to build the JSON context for the LLM
   const buildContext = (actionText: string, currentState: GameState, storyContext?: string, requiredOptions?: any[], goalOptions?: any[]) => {
-    const { resources, aspects, inventory, location, tags, story, knownFacts, readBooks, masteredLores, rites, languages, characters, unlockedDoors, time, identity, summary, playerName, playerGender, playerAppearance, turnsSinceLastMajorEvent } = currentState;
+    const { resources, aspects, inventory, location, tags, story, knownFacts, readBooks, masteredLores, rites, languages, characters, unlockedDoors, time, identity, summary, playerName, playerGender, playerAppearance, playerDescription, turnsSinceLastMajorEvent } = currentState;
     
     const dominantAspect = getDominantAspect(aspects);
     const chapterKey = getChapterKey(story.currentChapter);
@@ -85,7 +106,8 @@ export function useGameEngine(): GameEngineReturn {
         profile: {
           name: playerName,
           gender: playerGender,
-          appearance: playerAppearance
+          appearance: playerAppearance,
+          description: playerDescription
         },
         resources,
         aspects,
@@ -436,9 +458,8 @@ export function useGameEngine(): GameEngineReturn {
     `;
 
     try {
-      const response = await deepseekChat({
+      const response = await requestChat({
         messages: [{ role: 'user', content: summaryPrompt }],
-        apiKey,
         stream: false
       });
       
@@ -553,21 +574,20 @@ export function useGameEngine(): GameEngineReturn {
       // console.log('[DEBUG] currentRequiredOptions:', currentRequiredOptions);
       // console.log('[DEBUG] currentGoalOptions:', currentGoalOptions);
 
-      const systemMessage: DeepSeekChatMessage = { role: 'system', content: NARRATIVE_PROMPT };
-      const summaryMessage: DeepSeekChatMessage | null = updatedStore.summary ? { role: 'system', content: `[Previous Story Summary]: ${updatedStore.summary}` } : null;
+      const systemMessage: ChatMessage = { role: 'system', content: NARRATIVE_PROMPT };
+      const summaryMessage: ChatMessage | null = updatedStore.summary ? { role: 'system', content: `[Previous Story Summary]: ${updatedStore.summary}` } : null;
       
-      const recentHistoryMessages: DeepSeekChatMessage[] = updatedStore.history.slice(-10).map(h => ({ role: h.role as 'user' | 'assistant', content: h.content }));
+      const recentHistoryMessages: ChatMessage[] = updatedStore.history.slice(-10).map(h => ({ role: h.role as 'user' | 'assistant', content: h.content }));
       
-      const narrativeMessages: DeepSeekChatMessage[] = [
+      const narrativeMessages: ChatMessage[] = [
         systemMessage,
         ...(summaryMessage ? [summaryMessage] : []),
         ...recentHistoryMessages,
         { role: 'user', content: context }
       ];
 
-      const narrativeResponse = await deepseekChat({
+      const narrativeResponse = await requestChat({
         messages: narrativeMessages,
-        apiKey,
         stream: true
       });
 
@@ -638,12 +658,11 @@ export function useGameEngine(): GameEngineReturn {
 
       setDebugDataInput(dataAnalysisContext);
 
-      const dataResponse = await deepseekChat({
+      const dataResponse = await requestChat({
         messages: [
           { role: 'system', content: DATA_ANALYSIS_PROMPT },
           { role: 'user', content: dataAnalysisContext }
         ],
-        apiKey,
         stream: false
       });
 
@@ -661,8 +680,13 @@ export function useGameEngine(): GameEngineReturn {
            const currentTurns = useGameStore.getState().turnsSinceLastMajorEvent;
           //  console.log('[DEBUG] currentTurns for injecting key options:', currentTurns);
 
+            // Prologue selector should always present its canonical options immediately.
+            if (activeEvent?.id === 'prologue_selector') {
+              parsedData.options = pendingKeyOptions;
+            }
+
            // Force Mode: If turns >= 5, ONLY show key options
-           if (currentTurns >= 5) {
+            else if (currentTurns >= 5) {
               parsedData.options = pendingKeyOptions;
            } 
            // Inject Mode: If turns >= 2, append key options
@@ -695,6 +719,34 @@ export function useGameEngine(): GameEngineReturn {
 
   const handleAction = async (actionId: string, actionText: string) => {
     const currentStore = useGameStore.getState();
+
+    // First entry: directly present prologue choices without LLM interaction.
+    if (actionId === 'init' && currentStore.history.length === 0) {
+      const selectorEvent = storySystem.getEvent('prologue_selector');
+      if (selectorEvent) {
+        const originToPrologueId: Record<string, string> = {
+          rich: 'choose_prologue_rich',
+          doctor: 'choose_prologue_doctor',
+          detective: 'choose_prologue_detective'
+        };
+        const recommendedPrologueId = originToPrologueId[currentStore.story.origin || ''] || 'choose_prologue_rich';
+        const recommendedOption = (selectorEvent.options || []).find(opt => opt.id === recommendedPrologueId) || selectorEvent.options?.[0];
+
+        currentStore.setStoryState({ activeEventId: selectorEvent.id });
+        currentStore.setCurrentOptions(
+          recommendedOption
+            ? [{
+                id: recommendedOption.id,
+                text: recommendedOption.text,
+                style: 'neutral',
+                recommended: true
+              }]
+            : []
+        );
+      }
+      useUIStore.getState().setStatusMessage(null);
+      return;
+    }
     
     // Save snapshot before any changes
     currentStore.saveSnapshot();
@@ -706,6 +758,12 @@ export function useGameEngine(): GameEngineReturn {
     if (currentStore.story.activeEventId) {
       const event = storySystem.getEvent(currentStore.story.activeEventId);
       // console.log("[DEBUG] event:", event);
+
+      // Allow free-text custom prologue action from the selector input box.
+      if (currentStore.story.activeEventId === 'prologue_selector' && actionId === 'custom_action') {
+        currentStore.completeEvent(currentStore.story.activeEventId);
+        currentStore.setStoryState({ activeEventId: 'prologue_custom' });
+      }
 
       if (event && event.options) {
         const selectedOption = event.options.find(o => o.id === actionId);

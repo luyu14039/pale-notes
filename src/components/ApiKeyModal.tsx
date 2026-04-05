@@ -1,9 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useUIStore } from '@/stores/ui';
 import { deepseekChat } from '@/api/deepseek';
+import { siliconflowChat, SILICONFLOW_MODEL_OPTIONS } from '@/api/siliconflow';
+import type { SiliconFlowModel } from '@/api/siliconflow';
+import type { ChatMessage } from '@/api/siliconflow';
 
 export function ApiKeyModal() {
-  const { apiKey, setApiKey, isApiKeyModalOpen, setApiKeyModalOpen } = useUIStore();
+  const {
+    apiKey,
+    setApiKey,
+    provider,
+    setProvider,
+    siliconflowModel,
+    setSiliconflowModel,
+    isApiKeyModalOpen,
+    setApiKeyModalOpen,
+  } = useUIStore();
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   
   // 显示条件提前定义
@@ -24,11 +36,22 @@ export function ApiKeyModal() {
     setLastError(null);
     try {
       // 简单测试 API Key 是否有效
-      await deepseekChat({
-        messages: [{ role: 'user', content: 'Hello' }],
-        apiKey: key,
-        stream: false
-      });
+      const testMessages: ChatMessage[] = [{ role: 'user', content: 'Hello' }];
+
+      if (provider === 'siliconflow') {
+        await siliconflowChat({
+          messages: testMessages,
+          apiKey: key,
+          stream: false,
+          model: siliconflowModel,
+        });
+      } else {
+        await deepseekChat({
+          messages: testMessages,
+          apiKey: key,
+          stream: false,
+        });
+      }
       setApiKey(key);
       setStatus('success');
       setTimeout(() => {
@@ -89,18 +112,68 @@ export function ApiKeyModal() {
           <p className="text-text-primary font-bold text-base">
             感谢大家的访问和支持！
           </p>
-          <p>
-            由于访问量激增，作者提供的公共 Key 额度已耗尽。为了继续您的旅程，请在下方填入您自己的 DeepSeek API Key。
-            <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="text-accent-lantern hover:underline ml-1 inline-flex items-center gap-1">
-              (点击前往 DeepSeek 开放平台获取)
-            </a>
-          </p>
-          <p className="text-xs text-text-muted bg-surface/50 p-2 rounded border border-text-muted/20">
-            您的 Key 仅存储在本地浏览器中，直接发送至 DeepSeek 官方接口，不会经过任何第三方服务器。
-          </p>
-          <div className="text-xs text-accent-forge/90 border border-accent-forge/30 bg-accent-forge/5 p-2 rounded">
-            <p className="font-bold mb-1">⚠️ 无法连接？</p>
-            <p>如果确定 Key 正确但提示验证失败，很有可能是因为开启了 VPN/代理。本项目加载完成后无需代理即可直连 DeepSeek 服务，请尝试关闭代理后重试！</p>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <label className="block text-xs uppercase tracking-wider text-text-muted">API 提供商</label>
+              <select
+                value={provider}
+                onChange={(e) => setProvider(e.target.value as 'deepseek' | 'siliconflow')}
+                className="w-full bg-background border border-text-muted rounded p-2 text-text-primary focus:border-accent-lantern outline-none"
+              >
+                <option value="deepseek">DeepSeek</option>
+                <option value="siliconflow">SiliconFlow</option>
+              </select>
+            </div>
+
+            {provider === 'siliconflow' ? (
+              <div className="space-y-2">
+                <label className="block text-xs uppercase tracking-wider text-text-muted">SiliconFlow 模型</label>
+                <select
+                  value={siliconflowModel}
+                  onChange={(e) => setSiliconflowModel(e.target.value as SiliconFlowModel)}
+                  className="w-full bg-background border border-text-muted rounded p-2 text-text-primary focus:border-accent-lantern outline-none"
+                >
+                  {SILICONFLOW_MODEL_OPTIONS.map((model) => (
+                    <option key={model.value} value={model.value}>
+                      {model.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-text-muted">
+                  {SILICONFLOW_MODEL_OPTIONS.find((model) => model.value === siliconflowModel)?.description}
+                </p>
+              </div>
+            ) : null}
+
+            {provider === 'deepseek' ? (
+              <>
+                <p>
+                  由于访问量激增，作者提供的公共 Key 额度已耗尽。为了继续您的旅程，请在下方填入您自己的 DeepSeek API Key。
+                  <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer" className="text-accent-lantern hover:underline ml-1 inline-flex items-center gap-1">
+                    (点击前往 DeepSeek 开放平台获取)
+                  </a>
+                </p>
+                <p className="text-xs text-text-muted bg-surface/50 p-2 rounded border border-text-muted/20">
+                  您的 Key 仅存储在本地浏览器中，直接发送至 DeepSeek 官方接口，不会经过任何第三方服务器。
+                </p>
+                <div className="text-xs text-accent-forge/90 border border-accent-forge/30 bg-accent-forge/5 p-2 rounded">
+                  <p className="font-bold mb-1">⚠️ 无法连接？</p>
+                  <p>如果确定 Key 正确但提示验证失败，很有可能是因为开启了 VPN/代理。本项目加载完成后无需代理即可直连 DeepSeek 服务，请尝试关闭代理后重试！</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <p>
+                  请选择你的 SiliconFlow API Key。请求会直接发送到 SiliconFlow 官方接口，不会经过任何第三方服务器。
+                  <a href="https://cloud.siliconflow.cn/account/ak" target="_blank" rel="noopener noreferrer" className="text-accent-lantern hover:underline ml-1 inline-flex items-center gap-1">
+                    (点击前往 SiliconFlow 获取 Key)
+                  </a>
+                </p>
+                <p className="text-xs text-text-muted bg-surface/50 p-2 rounded border border-text-muted/20">
+                  默认启用推理模式；如果当前模型不兼容，可切换到其它 SiliconFlow 模型再试。
+                </p>
+              </>
+            )}
           </div>
         </div>
         
@@ -124,7 +197,7 @@ export function ApiKeyModal() {
 
         {status === 'error' && (
           <div className="space-y-2">
-            <p className="text-xs text-accent-grail">验证失败，请检查 Key 是否正确或额度是否充足。</p>
+            <p className="text-xs text-accent-grail">验证失败，请检查 Key 是否正确、额度是否充足，或当前模型是否可用。</p>
             <button
               onClick={exportErrorLog}
               className="text-xs text-text-muted underline hover:text-text-primary"

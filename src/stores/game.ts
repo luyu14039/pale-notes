@@ -117,12 +117,13 @@ export interface GameState {
   playerName: string
   playerGender: 'male' | 'female' | 'other'
   playerAppearance: string
+  playerDescription: string
   
   // Anti-Railroading
   turnsSinceLastMajorEvent: number
 
   // Actions
-  setPlayerProfile: (name: string, gender: 'male' | 'female' | 'other', appearance: string) => void
+  setPlayerProfile: (name: string, gender: 'male' | 'female' | 'other', appearance: string, description: string) => void
   incrementTurnCounter: () => void
   resetTurnCounter: () => void
 
@@ -223,6 +224,7 @@ const INITIAL_STATE = {
   playerName: 'Unknown',
   playerGender: 'other' as 'male' | 'female' | 'other',
   playerAppearance: 'A figure shrouded in mist.',
+  playerDescription: '',
   turnsSinceLastMajorEvent: 0
 };
 
@@ -231,7 +233,7 @@ export const useGameStore = create<GameState>()(
     (set, get) => ({
       ...INITIAL_STATE,
       
-      setPlayerProfile: (name, gender, appearance) => set({ playerName: name, playerGender: gender, playerAppearance: appearance }),
+      setPlayerProfile: (name, gender, appearance, description) => set({ playerName: name, playerGender: gender, playerAppearance: appearance, playerDescription: description }),
       incrementTurnCounter: () => set((state) => ({ turnsSinceLastMajorEvent: state.turnsSinceLastMajorEvent + 1 })),
       resetTurnCounter: () => set({ turnsSinceLastMajorEvent: 0 }),
 
@@ -374,7 +376,8 @@ export const useGameStore = create<GameState>()(
           knownFacts: state.knownFacts,
           facts: state.facts,
           readBooks: state.readBooks,
-          masteredLores: state.masteredLores
+          masteredLores: state.masteredLores,
+          playerDescription: state.playerDescription
         };
         return { lastStateSnapshot: JSON.parse(JSON.stringify(snapshot)) };
       }),
@@ -409,6 +412,7 @@ export const useGameStore = create<GameState>()(
           playerName: state.playerName,
           playerGender: state.playerGender,
           playerAppearance: state.playerAppearance,
+          playerDescription: state.playerDescription,
           turnsSinceLastMajorEvent: state.turnsSinceLastMajorEvent
         };
         return JSON.stringify(snapshot, null, 2);

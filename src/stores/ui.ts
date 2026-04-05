@@ -1,9 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { SiliconFlowModel } from '@/api/siliconflow'
+
+export type LLMProvider = 'deepseek' | 'siliconflow'
 
 interface UIState {
   apiKey: string
   setApiKey: (key: string) => void
+  provider: LLMProvider
+  setProvider: (provider: LLMProvider) => void
+  siliconflowModel: SiliconFlowModel
+  setSiliconflowModel: (model: SiliconFlowModel) => void
   isApiKeyModalOpen: boolean
   setApiKeyModalOpen: (isOpen: boolean) => void
   showTutorial: boolean
@@ -24,6 +31,10 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       apiKey: '',
       setApiKey: (key) => set({ apiKey: key }),
+      provider: 'deepseek',
+      setProvider: (provider) => set({ provider }),
+      siliconflowModel: 'Pro/deepseek-ai/DeepSeek-V3.2',
+      setSiliconflowModel: (model) => set({ siliconflowModel: model }),
       isApiKeyModalOpen: false,
       setApiKeyModalOpen: (isOpen) => set({ isApiKeyModalOpen: isOpen }),
       showTutorial: false,
@@ -39,7 +50,13 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'pale-notes-ui',
-      partialize: (state) => ({ apiKey: state.apiKey, theme: state.theme, autoFollow: state.autoFollow }), // Don't persist statusMessage
+      partialize: (state) => ({
+        apiKey: state.apiKey,
+        provider: state.provider,
+        siliconflowModel: state.siliconflowModel,
+        theme: state.theme,
+        autoFollow: state.autoFollow,
+      }), // Don't persist statusMessage
     }
   )
 )
