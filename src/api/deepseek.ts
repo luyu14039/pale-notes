@@ -6,27 +6,52 @@ export interface DeepSeekChatMessage {
   content: string;
 }
 
+export const DEEPSEEK_MODEL_OPTIONS = [
+  {
+    value: 'deepseek-v4-pro',
+    label: 'DeepSeek V4 Pro',
+  },
+  {
+    value: 'deepseek-v4-flash',
+    label: 'DeepSeek V4 Flash',
+  },
+] as const;
+
+export type DeepSeekModel = (typeof DEEPSEEK_MODEL_OPTIONS)[number]['value'];
+export type DeepSeekReasoningEffort = 'high' | 'max';
+
 export interface DeepSeekChatOptions {
   messages: DeepSeekChatMessage[];
   apiKey: string;
   stream?: boolean;
-  temperature?: number; // deepseek-reasoner 不支持 temperature (必须为 0 或不传，但 API 可能会忽略)
-  top_p?: number;
+  model?: DeepSeekModel;
+  thinking?: boolean;
+  reasoningEffort?: DeepSeekReasoningEffort;
 }
 
-export async function deepseekChat({ messages, apiKey, stream = false }: DeepSeekChatOptions) {
+export async function deepseekChat({
+  messages,
+  apiKey,
+  stream = false,
+  model = 'deepseek-v4-pro',
+  thinking = true,
+  reasoningEffort = 'high',
+}: DeepSeekChatOptions) {
   const url = 'https://api.deepseek.com/chat/completions';
   const headers = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${apiKey}`,
   };
   
-  // deepseek-reasoner 是推理模型，通常不支持 temperature/top_p 参数，或者有特定限制
-  // 根据官方文档，reasoner 模型不支持 temperature, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs
+  // DeepSeek V4 默认支持思考模式；思考强度仅在 thinking enabled 时生效。
   const body = JSON.stringify({
-    model: 'deepseek-reasoner', 
+    model,
     messages,
-    stream
+    stream,
+    thinking: {
+      type: thinking ? 'enabled' : 'disabled',
+    },
+    ...(thinking ? { reasoning_effort: reasoningEffort } : {}),
   });
 
   const response = await fetch(url, {

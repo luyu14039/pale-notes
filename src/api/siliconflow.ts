@@ -15,9 +15,19 @@ export type SiliconFlowChatMessage = ChatMessage;
 
 export const SILICONFLOW_MODEL_OPTIONS = [
   {
+    value: 'deepseek-ai/DeepSeek-V4-Pro',
+    label: 'DeepSeek V4 Pro（推荐）',
+    description: 'DeepSeek V4 高能力版本，适合当前故事生成。',
+  },
+  {
+    value: 'deepseek-ai/DeepSeek-V4-Flash',
+    label: 'DeepSeek V4 Flash',
+    description: 'DeepSeek V4 高性价比版本，适合更快响应。',
+  },
+  {
     value: 'Pro/deepseek-ai/DeepSeek-V3.2',
-    label: 'DeepSeek V3.2（推荐）',
-    description: '平衡推理和中文输出，适合当前故事生成。',
+    label: 'DeepSeek V3.2（旧版）',
+    description: '保留作为旧配置兼容选项。',
   },
   {
     value: 'Pro/zai-org/GLM-4.7',

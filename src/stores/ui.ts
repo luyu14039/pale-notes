@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { SiliconFlowModel } from '@/api/siliconflow'
+import { SILICONFLOW_MODEL_OPTIONS, type SiliconFlowModel } from '@/api/siliconflow'
 
 export type LLMProvider = 'deepseek' | 'siliconflow'
 
@@ -33,7 +33,7 @@ export const useUIStore = create<UIState>()(
       setApiKey: (key) => set({ apiKey: key }),
       provider: 'deepseek',
       setProvider: (provider) => set({ provider }),
-      siliconflowModel: 'Pro/deepseek-ai/DeepSeek-V3.2',
+      siliconflowModel: SILICONFLOW_MODEL_OPTIONS[0].value,
       setSiliconflowModel: (model) => set({ siliconflowModel: model }),
       isApiKeyModalOpen: false,
       setApiKeyModalOpen: (isOpen) => set({ isApiKeyModalOpen: isOpen }),
