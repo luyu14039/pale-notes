@@ -24,6 +24,8 @@ interface GameEngineReturn {
   isInputAllowed: boolean;
 }
 
+type EventEntrySource = 'initialization' | 'automatic' | 'option' | 'data-engine';
+
 export function useGameEngine(): GameEngineReturn {
   // We use the hook for reactive updates in the UI
   // @ts-ignore
@@ -198,6 +200,35 @@ export function useGameEngine(): GameEngineReturn {
       }
       throw e;
     }
+  };
+
+  const enterEvent = (eventId: string, source: EventEntrySource) => {
+    const currentState = useGameStore.getState();
+    const event = storySystem.getEvent(eventId);
+
+    if (currentState.story.activeEventId === eventId) {
+      return event;
+    }
+
+    currentState.setStoryState({ activeEventId: eventId });
+
+    if (source === 'automatic' || source === 'data-engine') {
+      useMetaStore.getState().addKeyEvent(eventId);
+    }
+    if (source === 'automatic') {
+      currentState.resetTurnCounter();
+    }
+
+    if (!event) {
+      console.warn(`Cannot enter unknown story event: ${eventId}`);
+      return undefined;
+    }
+
+    if (event.onEnter) {
+      storySystem.processEffects(event.onEnter, useGameStore.getState());
+    }
+
+    return event;
   };
 
   const handleStateChanges = (changes: any[]) => {
@@ -403,9 +434,8 @@ export function useGameEngine(): GameEngineReturn {
           summaryLines.push(`事件完成: ${change.target}`);
           break;
         case 'TRIGGER_EVENT':
-           setStoryState({ activeEventId: change.target });
+           enterEvent(change.target, 'data-engine');
            console.log("[DEBUG] updated activeEventId:", useGameStore.getState().story.activeEventId);
-           useMetaStore.getState().addKeyEvent(change.target);
            summaryLines.push(`触发事件: ${change.target}`);
            break;
       }
@@ -511,21 +541,8 @@ export function useGameEngine(): GameEngineReturn {
 
         if (activeEvent) {
           console.log("Triggered Event:", activeEvent.id);
-
-          // Set active event in store
-          useGameStore.getState().setStoryState({ activeEventId: activeEvent.id });
+          activeEvent = enterEvent(activeEvent.id, 'automatic') || null;
           console.log("[DEBUG] updated activeEventId:", useGameStore.getState().story.activeEventId);
-          
-          // Meta Update: Record Key Event
-          useMetaStore.getState().addKeyEvent(activeEvent.id);
-
-          // Reset turn counter for the new event
-          useGameStore.getState().resetTurnCounter();
-
-          // Process onEnter effects immediately
-          if (activeEvent.onEnter) {
-            storySystem.processEffects(activeEvent.onEnter, currentStore);
-          }
         }
       }
 
@@ -543,11 +560,14 @@ export function useGameEngine(): GameEngineReturn {
 
         // Store options for later injection, do NOT pass to AI as goalOptions
         if (activeEvent.options && activeEvent.options.length > 0) {
-          pendingKeyOptions = activeEvent.options.map(opt => ({
-            id: opt.id,
-            text: opt.text,
-            style: 'neutral'
-          }));
+          const currentGameState = useGameStore.getState();
+          pendingKeyOptions = activeEvent.options
+            .filter(opt => storySystem.isOptionAvailable(opt, currentGameState))
+            .map(opt => ({
+              id: opt.id,
+              text: opt.text,
+              style: 'neutral'
+            }));
           console.log('[DEBUG] pendingKeyOptions:', pendingKeyOptions);
 
           // currentGoalOptions = pendingKeyOptions;  // Hybrid Mode
@@ -732,7 +752,7 @@ export function useGameEngine(): GameEngineReturn {
         const recommendedPrologueId = originToPrologueId[currentStore.story.origin || ''] || 'choose_prologue_rich';
         const recommendedOption = (selectorEvent.options || []).find(opt => opt.id === recommendedPrologueId) || selectorEvent.options?.[0];
 
-        currentStore.setStoryState({ activeEventId: selectorEvent.id });
+        enterEvent(selectorEvent.id, 'initialization');
         currentStore.setCurrentOptions(
           recommendedOption
             ? [{
@@ -770,6 +790,14 @@ export function useGameEngine(): GameEngineReturn {
         // console.log("[DEBUG] selectedOption:", selectedOption);
 
         if (selectedOption) {
+          if (!storySystem.isOptionAvailable(selectedOption, useGameStore.getState())) {
+            const errorMessage = `Option requirements not met: ${selectedOption.id}`;
+            console.warn(errorMessage);
+            setLastError(errorMessage);
+            useUIStore.getState().setStatusMessage(null);
+            return;
+          }
+
           console.log("Selected Event Option:", selectedOption.id);
           
           // 1. Process Effects
@@ -782,7 +810,7 @@ export function useGameEngine(): GameEngineReturn {
           
           // 3. Handle Next Event
           if (selectedOption.nextEventId) {
-            currentStore.setStoryState({ activeEventId: selectedOption.nextEventId });
+            enterEvent(selectedOption.nextEventId, 'option');
           } else {
             currentStore.setStoryState({ activeEventId: null });
           }
