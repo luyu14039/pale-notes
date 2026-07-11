@@ -194,7 +194,7 @@ const INITIAL_STATE = {
   stage: 'init',
   location: 'London',
   time: {
-    year: 1905,
+    year: 1920,
     month: 11,
     day: 2,
     hour: 19,
